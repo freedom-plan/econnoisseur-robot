@@ -1,0 +1,71 @@
+apply plugin: "checkstyle"
+apply plugin: "findbugs"
+apply plugin: 'pmd'
+
+dependencies {
+    checkstyle 'com.puppycrawl.tools:checkstyle:8.10.1'
+}
+
+def stylePath = "$project.rootDir/gradle/style"
+
+findbugs {
+    group = "Verification"
+    description = "Inspect java bytecode for bugs"
+    toolVersion = "${findbugsVersion}"
+    sourceSets = [sourceSets.main, sourceSets.test]
+    effort = "max"
+    reportLevel = "low" // high
+    ignoreFailures = true
+    visitors = ["FindSqlInjection", "SwitchFallthrough"]
+    includeFilter = file("$stylePath/findbugs.xml")
+}
+
+checkstyle {
+    group = "Verification"
+    description = "Runs code style checks"
+    toolVersion = "${checkstyleVersion}"
+
+    configFile = file("$stylePath/checkstyle.xml")
+    ignoreFailures = true
+    showViolations = true
+    sourceSets = [sourceSets.main, sourceSets.test]
+    //    configProperties.checkstyleSuppressionsPath = file("$stylePath/suppressions.xml")
+}
+
+pmd {
+    group = "Verification"
+    description = "Inspect sourcecode for bugs"
+    ignoreFailures = true
+    sourceSets = [sourceSets.main, sourceSets.test]
+    ruleSetFiles = files("$stylePath/pmd.xml")
+}
+
+
+findbugsMain {
+    enabled = !Boolean.getBoolean("skipStyle")
+    reports.xml.enabled = true
+}
+
+checkstyleMain {
+    enabled = !Boolean.getBoolean("skipStyle")
+    reports.xml.enabled = true
+}
+
+pmdMain {
+    enabled = !Boolean.getBoolean("skipStyle")
+    reports.xml.enabled = true
+}
+
+findbugsTest {
+    enabled = !Boolean.getBoolean("skipStyle")
+}
+
+checkstyleTest {
+    enabled = !Boolean.getBoolean("skipStyle")
+}
+
+pmdTest {
+    enabled = !Boolean.getBoolean("skipStyle")
+}
+
+

@@ -1,0 +1,70 @@
+apply plugin: 'java'
+apply plugin: 'application'
+apply from: 'gradle/style.gradle'
+apply from: 'gradle/maven.gradle'
+apply from: 'gradle/tasks.gradle'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
+
+group = 'com.github.kevin'
+version = '0.0.1'
+
+description = "Coinex Robot Application"
+
+defaultTasks "clean", "build"
+
+[compileJava, compileTestJava]*.options*.encoding = "UTF-8"
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+buildDir = "target"
+
+ext {
+}
+
+repositories {
+  mavenLocal()
+  maven { url mavenPublicUrl }
+  mavenCentral()
+}
+
+dependencies {
+  compile "org.springframework.boot:spring-boot-starter"
+  compile "commons-io:commons-io:$commonsIoVersion"
+  compile "commons-codec:commons-codec:$commonsCodecVersion"
+  compile "org.apache.commons:commons-lang3:$commonsLangVersion"
+  compile "com.fasterxml.jackson.core:jackson-databind:2.9.6"
+  compile "org.apache.httpcomponents:httpclient:4.5.5"
+  compile "io.reactivex.rxjava2:rxjava:2.1.14"
+
+  compile "org.springframework.boot:spring-boot-starter-test"
+}
+
+configurations {
+  compile.exclude group: "log4j", module: "log4j"
+}
+
+mainClassName = "com.github.kevin.econnoisseur.application.Application"
+
+startScripts {
+  doLast {
+    unixScript.text = unixScript.text.replaceAll(":\\\$APP_HOME/lib/(.*)\n", ":\\\$APP_HOME/lib/\\*\n")
+  }
+}
+
+//这里一定得要。在多模块下，不然编译失败，因为不会把信赖模块给打包。
+jar {
+  enabled = true
+}
+
+buildscript {
+  repositories {
+    mavenLocal()
+    maven { url mavenPublicUrl }
+    mavenCentral()
+  }
+
+  dependencies {
+    classpath("org.springframework.boot:spring-boot-gradle-plugin:$springBootVersion")
+  }
+
+}
