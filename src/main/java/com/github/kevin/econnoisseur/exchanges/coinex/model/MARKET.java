@@ -1,29 +1,23 @@
 package com.github.kevin.econnoisseur.exchanges.coinex.model;
 
+import com.github.kevin.econnoisseur.model.CurrencyPair;
+
 /**
- *
- * MARKET
+ * Market
  *
  * @author Kevin Huang
  * @since version
  * 2018年06月20日 20:57:00
  */
-public enum MARKET {
-    MARKET_ETHCNY("ETHCNY"),
-    MARKET_ETHBTC("ETHBTC"),
-    MARKET_BTCCNY("BTCCNY"),
-    MARKET_BBNBTC("BBNBTC"),
-    MARKET_BBNBCH("BBNBCH"),
-    MARKET_NANOBTC("NANOBTC"),
-    ;
-
-    private String typeName;
-
-    private MARKET(String typeName) {
-        this.typeName = typeName;
+public class Market {
+    public static String valueOf(CurrencyPair pair) {
+        return new StringBuilder()
+                .append(pair.getBase())
+                .append(pair.getCounter()).toString();
     }
 
-    public String toString() {
-        return this.typeName;
+    // TODO
+    public static void main(String[] args) {
+        System.out.println(valueOf(CurrencyPair.BBN_ETH));
     }
 }

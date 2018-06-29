@@ -1,12 +1,12 @@
 package com.github.kevin.econnoisseur.util;
 
-import com.github.kevin.econnoisseur.exchanges.coinex.model.ApiPath;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.*;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.entity.StringEntity;
@@ -38,7 +38,7 @@ public class HttpRequest {
 
     private static final int TIMEOUT = 120 * 1000;
     public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
-    private static RequestConfig config = RequestConfig.custom()
+    public static RequestConfig CONFIG = RequestConfig.custom()
             .setCookieSpec(CookieSpecs.STANDARD_STRICT)
             .setSocketTimeout(TIMEOUT)
             .setConnectTimeout(TIMEOUT)
@@ -70,32 +70,6 @@ public class HttpRequest {
                 .build();
     }
 
-    public static String request(String urlPrefix, ApiPath apiPath, Map<String, Object> params, String authorization) {
-        String url = urlPrefix + apiPath.getPath();
-        HttpRequestBase http;
-        switch (apiPath.getMethod()) {
-            case "POST":
-                HttpPost httpPost = new HttpPost(url);
-                httpPost.setEntity(new StringEntity(JacksonUtil.toJson(params), DEFAULT_CHARSET));
-                http = httpPost;
-                break;
-            case "DELETE":
-                HttpDelete httpDelete = new HttpDelete(generateURL(url, params));
-                http = httpDelete;
-                break;
-            default: // "GET"
-                HttpGet httpGet = new HttpGet(generateURL(url, params));
-                http = httpGet;
-                break;
-        }
-        http.setConfig(config);
-        http.setHeader("Content-Type", "application/json");
-        if (StringUtils.isNotBlank(authorization)) {
-            http.setHeader("authorization", authorization);
-        }
-        return execute(http);
-    }
-
     /**
      * Post body json请求
      * @param url
@@ -104,7 +78,7 @@ public class HttpRequest {
      */
     public static String post(String url, String data) {
         HttpPost post = new HttpPost(url);
-        post.setConfig(config);
+        post.setConfig(CONFIG);
         post.setHeader("Content-Type", "application/json");
         post.setEntity(new StringEntity(data, DEFAULT_CHARSET));
         return execute(post);
@@ -123,7 +97,6 @@ public class HttpRequest {
         try {
             httpResponse = getClient().execute(request);
             sw.stop();
-//            LOGGER.info("response status line: {}", httpResponse.getStatusLine());
             HttpEntity entity = httpResponse.getEntity();
             response = EntityUtils.toString(entity, DEFAULT_CHARSET);
             EntityUtils.consume(entity);

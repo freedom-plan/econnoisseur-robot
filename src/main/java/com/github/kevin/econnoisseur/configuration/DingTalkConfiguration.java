@@ -14,8 +14,8 @@ import org.springframework.context.annotation.Configuration;
  * 2018年06月28日 20:50:00
  */
 @Configuration
+@ConditionalOnProperty(prefix = "ding.talk", name = "enabled", havingValue = "true")
 @ConfigurationProperties(prefix = "ding.talk")
-@ConditionalOnProperty(prefix = "ding.talk", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class DingTalkConfiguration {
     private String path;
 

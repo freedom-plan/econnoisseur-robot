@@ -1,20 +1,20 @@
 package com.github.kevin.econnoisseur.service;
 
-import com.github.kevin.econnoisseur.exchanges.coinex.dto.*;
-import com.github.kevin.econnoisseur.exchanges.coinex.model.MARKET;
-import com.github.kevin.econnoisseur.exchanges.coinex.service.StockApi;
-import com.github.kevin.econnoisseur.model.OrderType;
+import com.github.kevin.econnoisseur.dto.Balance;
+import com.github.kevin.econnoisseur.dto.Balances;
+import com.github.kevin.econnoisseur.dto.Order;
+import com.github.kevin.econnoisseur.dto.Ticker;
+import com.github.kevin.econnoisseur.exchanges.coinex.dto.ResponseDto;
+import com.github.kevin.econnoisseur.model.*;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
 
 /**
@@ -29,10 +29,12 @@ import java.util.Random;
 public class ClickFarmingService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClickFarmingService.class);
     @Autowired
-    private StockApi stockApi;
+    @Qualifier("coinexApi")
+    private IApi api;
+
     @Autowired(required = false)
     private DingTalkService dingTalkService;
-    private static final MARKET CURRENT_MARKET = MARKET.MARKET_NANOBTC;
+    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.BBN_ETH;
     private static final BigDecimal SAFE_WIDE = new BigDecimal("0.00000002");
     private static final BigDecimal AMOUNT = new BigDecimal("2");
 
@@ -41,7 +43,7 @@ public class ClickFarmingService {
 //    @Scheduled(cron = "0/5 * * * * ?")
     @Scheduled(fixedDelayString="1000")
     public void run() {
-        ResponseDto<TickerDto> ticker = stockApi.ticker(CURRENT_MARKET);
+        Ticker ticker = api.ticker(CURRENT_CURRENCY_PAIR);
 
         BigDecimal price = isSafeWide(ticker);
         if (null != price) {
@@ -49,48 +51,50 @@ public class ClickFarmingService {
 //                    .setScale(8, BigDecimal.ROUND_HALF_UP);
             int count = 0;
             LOGGER.info("挂卖单执行价: {}, 执行数量: {}", price, AMOUNT);
-            ResponseDto<OrderDto> sell = stockApi.putLimitOrder(CURRENT_MARKET, OrderType.ORDER_TYPE_SELL, AMOUNT, price);
+            Order sell = api.trade(CURRENT_CURRENCY_PAIR, OrderType.LIMIT, OrderOperation.SELL, AMOUNT, price);
             Long sellId = null;
             Long buyId = null;
             String sellStatus = null;
             String buyStatus = null;
-            if (checkResponse(sell)) {
-                sellId = sell.getData().getId();
-                sellStatus = sell.getData().getStatus();
+            if (Code.OK == sell.getCode()) {
+                sellId = sell.getId();
+                sellStatus = sell.getStatus();
             }
             if (null == sellId) {
                 LOGGER.info("卖单请求失败!\n\n");
                 return;
             }
+
+            // TODO
             if (STATUS_DONE.equals(sellStatus)) {
                 LOGGER.info("卖单被吞!\n\n");
                 System.exit(0);
             }
 
             LOGGER.info("挂买单执行价: {}, 执行数量: {}", price, AMOUNT);
-            ResponseDto<OrderDto> buy = stockApi.putLimitOrder(CURRENT_MARKET, OrderType.ORDER_TYPE_BUY, AMOUNT, price);
-            if (checkResponse(buy)) {
-                buyId = buy.getData().getId();
-                buyStatus = buy.getData().getStatus();
+            Order buy = api.trade(CURRENT_CURRENCY_PAIR, OrderType.LIMIT, OrderOperation.BUY, AMOUNT, price);
+            if (Code.OK == buy.getCode()) {
+                buyId = buy.getId();
+                buyStatus = sell.getStatus();
             }
             if (null == buyId) {
-                LOGGER.info(stockApi.cancelOrder(CURRENT_MARKET, sellId));
+                api.cancelOrder(CURRENT_CURRENCY_PAIR, sellId);
                 LOGGER.info("取消卖单 {}\n\n", sellId);
                 return;
             }
 
             do {
                 if (StringUtils.isBlank(sellStatus) || !STATUS_DONE.equals(sellStatus)) {
-                    sell = stockApi.getOrder(CURRENT_MARKET, sellId);
-                    if (checkResponse(sell)) {
-                        sellStatus = sell.getData().getStatus();
+                    sell = api.getOrder(CURRENT_CURRENCY_PAIR, sellId);
+                    if (Code.OK == sell.getCode()) {
+                        sellStatus = sell.getStatus();
                     }
                     LOGGER.info("获取 sell 状态, sellStatus: {}", sellStatus);
                 }
                 if (StringUtils.isBlank(buyStatus) || !STATUS_DONE.equals(buyStatus)) {
-                    buy = stockApi.getOrder(CURRENT_MARKET, buyId);
-                    if (checkResponse(buy)) {
-                        buyStatus = buy.getData().getStatus();
+                    buy = api.getOrder(CURRENT_CURRENCY_PAIR, buyId);
+                    if (Code.OK == buy.getCode()) {
+                        buyStatus = buy.getStatus();
                     }
                     LOGGER.info("获取 buy 状态, buyStatus: {}", buyStatus);
                 }
@@ -118,44 +122,42 @@ public class ClickFarmingService {
 
     @Scheduled(fixedDelayString="120000")
     public void check() {
-        ResponseDto<Map<String, BalanceDto>> account = stockApi.account();
-        if (checkResponse(account)) {
-            BalanceDto BTC = account.getData().get("BTC");
+        Balances balances = api.balances();
+        if (Code.OK == balances.getCode()) {
+            Balance BTC = balances.getBalance(Currency.BTC);
             LOGGER.info("账号 BTC 状态, available: {}, frozen: {}", BTC.getAvailable(), BTC.getFrozen());
 
-            BalanceDto NANO = account.getData().get("NANO");
+            Balance NANO = balances.getBalance(Currency.NANO);
             LOGGER.info("账号 NANO 状态, available: {}, frozen: {}", NANO.getAvailable(), NANO.getFrozen());
         }
-
-        BigDecimal bigDecimal = new BigDecimal(0);
-
-        int pageNum = 1;
-        PageDto page = null;
-        do {
-            ResponseDto<PageDto> finished = stockApi.finishedOrder(CURRENT_MARKET, pageNum, 100);
-            if (checkResponse(finished)) {
-                page = finished.getData();
-                if (null != page) {
-                    List<OrderDto> orders = page.getData();
-                    if (!CollectionUtils.isEmpty(orders)) {
-                        for (OrderDto order : orders) {
-                            bigDecimal = bigDecimal.add(order.getAmount());
-                        }
-                    }
-                }
-            }
-            pageNum++;
-        } while (null != page && page.getHasNext());
-        LOGGER.info("$$$$$ 获取交易总量状态, sum: {}\n\n", bigDecimal);
+//
+//        BigDecimal bigDecimal = new BigDecimal(0);
+//
+//        int pageNum = 1;
+//        PageDto page = null;
+//        do {
+//            ResponseDto<PageDto> finished = api.finishedOrder(CURRENT_MARKET, pageNum, 100);
+//            if (checkResponse(finished)) {
+//                page = finished.getData();
+//                if (null != page) {
+//                    List<OrderDto> orders = page.getData();
+//                    if (!CollectionUtils.isEmpty(orders)) {
+//                        for (OrderDto order : orders) {
+//                            bigDecimal = bigDecimal.add(order.getAmount());
+//                        }
+//                    }
+//                }
+//            }
+//            pageNum++;
+//        } while (null != page && page.getHasNext());
+//        LOGGER.info("$$$$$ 获取交易总量状态, sum: {}\n\n", bigDecimal);
     }
 
-    private BigDecimal isSafeWide(ResponseDto<TickerDto> tickerResponse) {
+    private BigDecimal isSafeWide(Ticker ticker) {
         BigDecimal price = null;
-        if (checkResponse(tickerResponse)) {
-            TickerDto.Ticker ticker = tickerResponse.getData().getTicker();
-//            LOGGER.info("检查盘口宽度是否合适做单：开始 {}", JacksonUtil.toJson(ticker));
-            BigDecimal sell = ticker.getSell();
-            BigDecimal buy = ticker.getBuy();
+        if (Code.OK == ticker.getCode()) {
+            BigDecimal sell = ticker.getAsk();
+            BigDecimal buy = ticker.getBid();
             if (sell.compareTo(buy.add(SAFE_WIDE)) >= 0) {
                 price = getAverage(sell, buy);
             }

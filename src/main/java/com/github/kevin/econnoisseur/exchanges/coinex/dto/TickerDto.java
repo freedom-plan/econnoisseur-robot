@@ -1,6 +1,7 @@
 package com.github.kevin.econnoisseur.exchanges.coinex.dto;
 
 
+import com.github.kevin.econnoisseur.model.Code;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
@@ -126,6 +127,17 @@ public class TickerDto {
         public Ticker setOpen(String open) {
             this.open = open;
             return this;
+        }
+
+        public com.github.kevin.econnoisseur.dto.Ticker convert() {
+            com.github.kevin.econnoisseur.dto.Ticker result = new com.github.kevin.econnoisseur.dto.Ticker(Code.OK)
+                    .setAsk(this.getSell())
+                    .setBid(this.getBuy())
+                    .setLast(this.getLast())
+                    .setHigh(this.getHigh())
+                    .setLow(this.getLow())
+                    .setVol(this.getVol());
+            return result;
         }
     }
 }

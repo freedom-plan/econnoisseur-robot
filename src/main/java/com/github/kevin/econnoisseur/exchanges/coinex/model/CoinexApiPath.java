@@ -2,13 +2,13 @@ package com.github.kevin.econnoisseur.exchanges.coinex.model;
 
 /**
  *
- * ApiPath
+ * CoinexApiPath
  *
  * @author Kevin Huang
  * @since version
  * 2018年06月20日 20:56:00
  */
-public enum ApiPath {
+public enum CoinexApiPath {
     TICKER_PATH("market/ticker", "GET"), // 行情URL
     DEPTH_PATH("market/depth", "GET"), // 市场深度URL
     TRADES_PATH("market/deals", "GET"), // 历史交易信息URL
@@ -24,7 +24,7 @@ public enum ApiPath {
     private String path;
     private String method;
 
-    private ApiPath(String path, String method) {
+    private CoinexApiPath(String path, String method) {
         this.path = path;
         this.method = method;
     }
@@ -33,7 +33,7 @@ public enum ApiPath {
         return path;
     }
 
-    public ApiPath setPath(String path) {
+    public CoinexApiPath setPath(String path) {
         this.path = path;
         return this;
     }
@@ -42,7 +42,7 @@ public enum ApiPath {
         return method;
     }
 
-    public ApiPath setMethod(String method) {
+    public CoinexApiPath setMethod(String method) {
         this.method = method;
         return this;
     }
