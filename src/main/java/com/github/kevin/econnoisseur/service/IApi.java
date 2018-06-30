@@ -27,6 +27,6 @@ public interface IApi {
     Orders pandingOrders(CurrencyPair pair);
     Orders finishedOrders(CurrencyPair pair);
 
-    Order getOrder(CurrencyPair pair, Long orderId);
-    Order cancelOrder(CurrencyPair pair, Long orderId);
+    Order getOrder(CurrencyPair pair, String orderId);
+    Order cancelOrder(CurrencyPair pair, String orderId);
 }

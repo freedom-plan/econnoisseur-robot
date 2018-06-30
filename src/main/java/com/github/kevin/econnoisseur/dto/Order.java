@@ -14,7 +14,7 @@ import java.math.BigDecimal;
  * 2018年06月29日 15:27:00
  */
 public class Order extends BaseResp {
-    private Long id;
+    private String id;
     // 交易的
     private BigDecimal amount;
     // 交易的
@@ -35,11 +35,11 @@ public class Order extends BaseResp {
         super(code);
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public Order setId(Long id) {
+    public Order setId(String id) {
         this.id = id;
         return this;
     }

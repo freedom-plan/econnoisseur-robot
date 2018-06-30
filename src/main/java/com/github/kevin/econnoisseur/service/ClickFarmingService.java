@@ -52,8 +52,8 @@ public class ClickFarmingService {
             int count = 0;
             LOGGER.info("挂卖单执行价: {}, 执行数量: {}", price, AMOUNT);
             Order sell = api.trade(CURRENT_CURRENCY_PAIR, OrderType.LIMIT, OrderOperation.SELL, AMOUNT, price);
-            Long sellId = null;
-            Long buyId = null;
+            String sellId = null;
+            String buyId = null;
             String sellStatus = null;
             String buyStatus = null;
             if (Code.OK == sell.getCode()) {

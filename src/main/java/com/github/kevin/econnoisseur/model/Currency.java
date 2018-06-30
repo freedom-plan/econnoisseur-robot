@@ -14,7 +14,9 @@ public enum Currency {
     ETH,
     BTC,
     BBN,
-    NANO;
+    NANO,
+    IOST,
+    ;
 
     @Override
     public String toString() {

@@ -109,12 +109,12 @@ public class CoinexApi implements IApi {
     }
 
     @Override
-    public Order getOrder(CurrencyPair pair, Long orderId) {
+    public Order getOrder(CurrencyPair pair, String orderId) {
         return null;
     }
 
     @Override
-    public Order cancelOrder(CurrencyPair pair, Long orderId) {
+    public Order cancelOrder(CurrencyPair pair, String orderId) {
         return null;
     }
 

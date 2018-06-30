@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.github.kevin.econnoisseur.dto.*;
+import com.github.kevin.econnoisseur.exchanges.kkcoin.model.Market;
 import com.github.kevin.econnoisseur.exchanges.kkcoin.dto.BalanceDto;
 import com.github.kevin.econnoisseur.exchanges.kkcoin.model.KKCoinApiPath;
 import com.github.kevin.econnoisseur.exchanges.kkcoin.util.RSAUtil;
@@ -27,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.github.kevin.econnoisseur.exchanges.kkcoin.model.KKCoinApiPath.*;
+import static com.github.kevin.econnoisseur.model.Code.OK;
 
 /**
  * StockApi
@@ -43,6 +45,7 @@ public class StockApi implements IApi {
     private String timeMill = "";
 
     private static final String SUCCESS = "0";
+    private static final String BUY = "0";
 
     private String urlPrefix;
 
@@ -115,7 +118,6 @@ public class StockApi implements IApi {
                 .fluentPut("ordertype", orderType)
                 .fluentPut("price", price)
                 .fluentPut("symbol", symbol);
-        System.out.println(JSON.toJSONString(jsonObject));
         String sign = sign("trade", jsonObject.toJSONString());
         if (null == sign) {
             return null;
@@ -173,13 +175,24 @@ public class StockApi implements IApi {
      * @return
      */
     private String doRequest(String sign, KKCoinApiPath apiPath, Map<String, Object> params) {
-        Header kkcoinapikey = new BasicHeader("KKCOINAPIKEY", this.apiKey);
-        Header kkcoinsign = new BasicHeader("KKCOINSIGN", sign);
-        Header kkcointimestamp = new BasicHeader("KKCOINTIMESTAMP", timeMill);
-
-        return request(urlPrefix, apiPath, params, kkcoinapikey, kkcoinsign, kkcointimestamp);
+        if (null != sign && sign.length() > 0) {
+            Header kkcoinapikey = new BasicHeader("KKCOINAPIKEY", this.apiKey);
+            Header kkcoinsign = new BasicHeader("KKCOINSIGN", sign);
+            Header kkcointimestamp = new BasicHeader("KKCOINTIMESTAMP", timeMill);
+            return request(urlPrefix, apiPath, params, kkcoinapikey, kkcoinsign, kkcointimestamp);
+        } else {
+            return request(urlPrefix, apiPath, params);
+        }
     }
 
+    /**
+     * 发起请求
+     * @param urlPrefix
+     * @param apiPath
+     * @param map
+     * @param headers
+     * @return
+     */
     private String request(String urlPrefix, KKCoinApiPath apiPath, Map<String, Object> map,
         Header... headers) {
         String url = urlPrefix + apiPath.getPath();
@@ -206,17 +219,30 @@ public class StockApi implements IApi {
     }
 
     public static void main(String[] args) {
-//        System.out.println(stockApi.trade("IOST_ETH", "LIMIT", "SELL", "1", "200"));
 //        System.out.println(stockApi.order("20180629000000580420"));
-//        System.out.println(stockApi.cancel("20180629000000580420"));
+        //        System.out.println(stockApi.cancel("20180629000000580420"));
 //        System.out.println(stockApi.openorders("IOST_ETH"));
 
 //        Balances balances = stockApi.balances();
 //        System.out.println(balances);
+//        Ticker ticker = stockApi.ticker(CurrencyPair.IOST_ETH);
+//        Order trade = stockApi.trade(CurrencyPair.IOST_ETH, OrderType.LIMIT, OrderOperation
+//            .SELL, new BigDecimal("1"), new BigDecimal("200"));
+//        Order order = stockApi.getOrder(null, "20180630000000271507");
+//        System.out.println("test");
     }
 
     @Override public Ticker ticker(CurrencyPair pair) {
-        return null;
+        JSONObject symbol = new JSONObject().fluentPut("symbol", Market.valueOf(pair));
+        String response = doRequest("", TICKER_PATH, symbol);
+        JSONArray array = JSON.parseArray(response);
+        return new Ticker(OK)
+            .setBid(array.getBigDecimal(1))
+            .setAsk(array.getBigDecimal(3))
+            .setHigh(array.getBigDecimal(9))
+            .setLow(array.getBigDecimal(10))
+            .setLast(array.getBigDecimal(7))
+            .setVol(array.getBigDecimal(8));
     }
 
     @Override public Balances balances() {
@@ -226,7 +252,7 @@ public class StockApi implements IApi {
         }
         String response = doRequest(sign, BALANCE_PATH, null);
         List<BalanceDto> balArray = JSON.parseArray(response, BalanceDto.class);
-        Balances balances = new Balances(Code.OK);
+        Balances balances = new Balances(OK);
         balArray.forEach(p -> {
             balances.setBalance(Currency.get(p.getAssetSymbol()), new Balance().setTotal(p.getBal
                 ()).setAvailable(p.getAvailableBal()).setFrozen(p.getFrozenBal()));
@@ -236,8 +262,33 @@ public class StockApi implements IApi {
 
     @Override public Order trade(CurrencyPair pair, OrderType type, OrderOperation operation,
         BigDecimal price, BigDecimal amount) {
+        JSONObject jsonObject =
+            new JSONObject(true)
+                .fluentPut("amount", amount.toString())
+                .fluentPut("orderop", operation)
+                .fluentPut("ordertype", type)
+                .fluentPut("price", price.toString())
+                .fluentPut("symbol", Market.valueOf(pair));
+        String sign = sign("trade", jsonObject.toJSONString());
+        if (null == sign) {
+            return null;
+        }
+        String response = doRequest(sign, TRADE_PATH, jsonObject);
 
-        return null;
+        JSONArray trade = JSON.parseArray(response);
+        if (null != trade && trade.size() > 0) {
+            String code = trade.getJSONObject(0).getString("code");
+            Order order = new Order().setStatus(code);
+            if (SUCCESS.equals(code)) {
+                return order.setId(trade.getJSONObject(1).getString("order_id"));
+            } else {
+                LOGGER.info("订单提交失败，返回码错误");
+                return order;
+            }
+        } else {
+            LOGGER.info("订单提交失败，无值返回");
+            return null;
+        }
     }
 
     @Override public Orders pandingOrders(CurrencyPair pair) {
@@ -248,13 +299,30 @@ public class StockApi implements IApi {
         return null;
     }
 
-    @Override public Order getOrder(CurrencyPair pair, Long orderId) {
-        return null;
+    @Override public Order getOrder(CurrencyPair pair, String orderId) {
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("id", orderId);
+        String sign = sign("order", jsonObject.toJSONString());
+        if (null == sign) {
+            return null;
+        }
+        String responseStr = doRequest(sign, ORDER_STATE_PATH, jsonObject);
+        LOGGER.info("获取订单消息返回结果：{}", responseStr);
+        JSONObject response = JSONObject.parseObject(responseStr);
+        return new Order().setId(response.getString("order_id"))
+            .setAmount(new BigDecimal(response.getString("executed_amount")))
+            .setPrice(new BigDecimal(response.getString("executed_price")))
+            .setOperation(BUY.equals(response.getString("orderop")) ? OrderOperation.BUY :
+                OrderOperation.SELL)
+            .setTotalAmount(new BigDecimal(response.getString("origin_amount")))
+            .setTotalPrice(new BigDecimal(response.getString("price")))
+            .setType(OrderType.LIMIT)
+            .setStatus(response.getString("status"));
     }
 
-    @Override public Order cancelOrder(CurrencyPair pair, Long orderId) {
+    @Override public Order cancelOrder(CurrencyPair pair, String orderId) {
         JSONObject jsonObject =
-            new JSONObject().fluentPut("id", orderId.toString());
+            new JSONObject().fluentPut("id", orderId);
         String sign = sign("cancel", jsonObject.toJSONString());
         if (null == sign) {
             return null;
@@ -265,7 +333,7 @@ public class StockApi implements IApi {
             String code = cancelArray.getJSONObject(0).getString("code");
             Order order = new Order().setStatus(code);
             if (SUCCESS.equals(code)) {
-                return order.setId(cancelArray.getJSONObject(1).getLong("order_id"));
+                return order.setId(cancelArray.getJSONObject(1).getString("order_id"));
             } else {
                 LOGGER.info("订单{}取消失败，返回码错误", orderId);
                 return order;
