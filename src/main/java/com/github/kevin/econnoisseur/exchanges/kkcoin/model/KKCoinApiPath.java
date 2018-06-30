@@ -13,7 +13,9 @@ public enum KKCoinApiPath {
     ORDER_STATE_PATH("order/", "GET"), //  查询当前委托
     ORDERS_PATH("openorders/", "GET"), //  查询委托状态
     TRADE_PATH("trade/", "POST"), // 委托交易
-    CANCEL_TRADE("cancel/", "POST"); // 取消委托
+    CANCEL_TRADE("cancel/", "POST"),// 取消委托
+    TICKER_PATH("ticker/", "GET"),// 取消委托
+    ;
 
     private String path;
     private String method;

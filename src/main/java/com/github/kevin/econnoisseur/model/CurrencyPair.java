@@ -2,6 +2,7 @@ package com.github.kevin.econnoisseur.model;
 
 import static com.github.kevin.econnoisseur.model.Currency.BBN;
 import static com.github.kevin.econnoisseur.model.Currency.ETH;
+import static com.github.kevin.econnoisseur.model.Currency.IOST;
 
 /**
  * CurrencyPair
@@ -12,6 +13,7 @@ import static com.github.kevin.econnoisseur.model.Currency.ETH;
  */
 public enum CurrencyPair {
     BBN_ETH(BBN, ETH),
+    IOST_ETH(IOST, ETH)
     ;
 
     private Currency base;
