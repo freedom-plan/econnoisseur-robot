@@ -6,8 +6,8 @@ apply from: 'gradle/tasks.gradle'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 
-group = 'com.github.kevin'
-version = '0.0.2'
+group = 'com.github.f.plan'
+version = '0.0.3'
 
 description = "Coinex Robot Application"
 
@@ -42,7 +42,7 @@ configurations {
   compile.exclude group: "log4j", module: "log4j"
 }
 
-mainClassName = "com.github.kevin.econnoisseur.application.Application"
+mainClassName = "com.github.f.plan.econnoisseur.application.Application"
 
 startScripts {
   doLast {
