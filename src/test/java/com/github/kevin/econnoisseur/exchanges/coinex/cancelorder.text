@@ -1,0 +1,26 @@
+# Request
+DELETE https://api.coinex.com/v1/order/pending?id=123&market=BTCBCH&tonce=1513746038205&access_id=BFFA64957AA240F6BBEA26F4E07EC0D9
+
+# Response
+{
+    "code": 0,
+    "data": {
+        "amount": "56.5",              # order count
+        "avg_price": "11641.3",        # average order price
+        "create_time": 1496798479,     # order placing time
+        "deal_amount": "56.5",         # executed amount
+        "deal_fee": "1315.4669122",    # transaction fee
+        "deal_money": "657733.4561",   # executed value
+        "id": 300032,                  # order no.
+        "left": "0",                   # unexecuted amount
+        "maker_fee_rate": "0.001",     # maker fee
+        "market": "BTCBCH",            # market
+        "order_type": "limit",         # order type: limit:limit order;market:market order;
+        "price": "10",                 # order price
+        "source_id": "123",            # user-defined no.
+        "status": "done",              # order status: done:executed;part_deal:partly executed;not_deal:unexecuted;
+        "taker_fee_rate": "0.002",     # taker fee
+        "type": "sell"                 # order type: sell:sell;buy:buy;
+    },
+    "message": "Ok"
+}

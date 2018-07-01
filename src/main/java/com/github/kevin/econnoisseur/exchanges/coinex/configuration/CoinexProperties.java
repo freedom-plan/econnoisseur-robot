@@ -9,7 +9,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @since version
  * 2018年06月21日 09:35:00
  */
-@ConfigurationProperties(prefix = "coinex")
+@ConfigurationProperties(prefix = "econnoisseur.coinex")
 public class CoinexProperties {
     private String accessId;  //CoinEx申请的apiKey
     private String secretKey;  //CoinEx 申请的secret_key

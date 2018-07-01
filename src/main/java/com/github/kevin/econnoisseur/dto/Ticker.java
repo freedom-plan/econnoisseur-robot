@@ -12,7 +12,9 @@ import java.math.BigDecimal;
  * 2018年06月29日 14:21:00
  */
 public class Ticker extends BaseResp {
+    // buy
     private BigDecimal bid;
+    // sell
     private BigDecimal ask;
 
     private BigDecimal last;

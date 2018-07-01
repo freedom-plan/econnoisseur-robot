@@ -1,5 +1,8 @@
 package com.github.kevin.econnoisseur.model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * OrderType
  *
@@ -10,4 +13,19 @@ package com.github.kevin.econnoisseur.model;
 public enum OrderType {
     LIMIT,
     MARKET;
+
+    private static final Map<String, OrderType> map = new HashMap<>();
+
+    public static OrderType get(String type) {
+        if (map.isEmpty()) {
+            synchronized (map) {
+                if (map.isEmpty()) {
+                    for (OrderType key : OrderType.values()) {
+                        map.put(key.name(), key);
+                    }
+                }
+            }
+        }
+        return map.get(null != type ? type.toUpperCase() : null);
+    }
 }

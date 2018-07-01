@@ -3,14 +3,14 @@ package com.github.kevin.econnoisseur.exchanges.kkcoin.configuration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * CoinexProperties
+ * KkcoinProperties
  *
  * @author Kevin Huang
  * @since version
  * 2018年06月21日 09:35:00
  */
-@ConfigurationProperties(prefix = "kkcoin")
-public class KKCoinProperties {
+@ConfigurationProperties(prefix = "econnoisseur.kkcoin")
+public class KkcoinProperties {
     /**
      * KKcoin申请的apiKey
      */
@@ -27,7 +27,7 @@ public class KKCoinProperties {
         return apiKey;
     }
 
-    public KKCoinProperties setApiKey(String apiKey) {
+    public KkcoinProperties setApiKey(String apiKey) {
         this.apiKey = apiKey;
         return this;
     }
@@ -36,7 +36,7 @@ public class KKCoinProperties {
         return privateKey;
     }
 
-    public KKCoinProperties setPrivateKey(String privateKey) {
+    public KkcoinProperties setPrivateKey(String privateKey) {
         this.privateKey = privateKey;
         return this;
     }
@@ -45,7 +45,7 @@ public class KKCoinProperties {
         return urlPrefix;
     }
 
-    public KKCoinProperties setUrlPrefix(String urlPrefix) {
+    public KkcoinProperties setUrlPrefix(String urlPrefix) {
         this.urlPrefix = urlPrefix;
         return this;
     }

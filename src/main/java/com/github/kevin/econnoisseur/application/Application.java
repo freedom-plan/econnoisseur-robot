@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.PropertySource;
 
 /**
  * 启动类.
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.ComponentScan;
 @SpringBootApplication
 @ComponentScan("com.github.kevin.econnoisseur")
 @EnableAutoConfiguration
+@PropertySource("file:/opt/mine/econnoisseur-robot/econnoisseur.properties")
 public class Application {
     /**
      *  Spring Boot 启动方法.

@@ -1,5 +1,8 @@
 package com.github.kevin.econnoisseur.model;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * OrderOperation
  *
@@ -10,4 +13,19 @@ package com.github.kevin.econnoisseur.model;
 public enum OrderOperation {
     SELL,
     BUY;
+
+    private static final Map<String, OrderOperation> map = new HashMap<>();
+
+    public static OrderOperation get(String operation) {
+        if (map.isEmpty()) {
+            synchronized (map) {
+                if (map.isEmpty()) {
+                    for (OrderOperation key : OrderOperation.values()) {
+                        map.put(key.name(), key);
+                    }
+                }
+            }
+        }
+        return map.get(null != operation ? operation.toUpperCase() : null);
+    }
 }

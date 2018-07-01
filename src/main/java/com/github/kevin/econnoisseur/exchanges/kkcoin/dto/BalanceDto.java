@@ -37,10 +37,10 @@ public class BalanceDto {
     }
 
     public BigDecimal getAvailableBal() {
-        if (StringUtils.isBlank(bal)) {
+        if (StringUtils.isBlank(availableBal)) {
             return null;
         }
-        return new BigDecimal(bal);
+        return new BigDecimal(availableBal);
     }
 
     public void setAvailableBal(String availableBal) {
@@ -48,18 +48,14 @@ public class BalanceDto {
     }
 
     public BigDecimal getFrozenBal() {
-        if (StringUtils.isBlank(bal)) {
+        if (StringUtils.isBlank(frozenBal)) {
             return null;
         }
-        return new BigDecimal(bal);
+        return new BigDecimal(frozenBal);
     }
 
     public void setFrozenBal(String frozenBal) {
         this.frozenBal = frozenBal;
     }
 
-    @Override public String toString() {
-        return "BalanceDto{" + "assetSymbol='" + assetSymbol + '\'' + ", bal='" + bal + '\''
-            + ", availableBal='" + availableBal + '\'' + ", frozenBal='" + frozenBal + '\'' + '}';
-    }
 }

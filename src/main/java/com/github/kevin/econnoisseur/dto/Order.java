@@ -2,6 +2,7 @@ package com.github.kevin.econnoisseur.dto;
 
 import com.github.kevin.econnoisseur.model.Code;
 import com.github.kevin.econnoisseur.model.OrderOperation;
+import com.github.kevin.econnoisseur.model.OrderStatus;
 import com.github.kevin.econnoisseur.model.OrderType;
 
 import java.math.BigDecimal;
@@ -22,7 +23,7 @@ public class Order extends BaseResp {
     private OrderType type;
     private OrderOperation operation;
     // 各个平台不一样 status
-    private String status;
+    private OrderStatus status;
     private BigDecimal totalAmount;
     // 交易的
     private BigDecimal totalPrice;
@@ -80,11 +81,11 @@ public class Order extends BaseResp {
         return this;
     }
 
-    public String getStatus() {
+    public OrderStatus getStatus() {
         return status;
     }
 
-    public Order setStatus(String status) {
+    public Order setStatus(OrderStatus status) {
         this.status = status;
         return this;
     }

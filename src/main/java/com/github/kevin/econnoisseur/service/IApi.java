@@ -6,7 +6,6 @@ import com.github.kevin.econnoisseur.dto.Orders;
 import com.github.kevin.econnoisseur.dto.Ticker;
 import com.github.kevin.econnoisseur.model.CurrencyPair;
 import com.github.kevin.econnoisseur.model.OrderOperation;
-import com.github.kevin.econnoisseur.model.OrderType;
 
 import java.math.BigDecimal;
 
@@ -22,7 +21,8 @@ public interface IApi {
 
     Balances balances();
 
-    Order trade(CurrencyPair pair, OrderType type, OrderOperation operation, BigDecimal price, BigDecimal amount);
+    Order limit(CurrencyPair pair, OrderOperation operation, BigDecimal price, BigDecimal amount);
+    Order market(CurrencyPair pair, OrderOperation operation, BigDecimal amount);
 
     Orders pandingOrders(CurrencyPair pair);
     Orders finishedOrders(CurrencyPair pair);

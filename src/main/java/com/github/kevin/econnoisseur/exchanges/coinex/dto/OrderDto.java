@@ -1,6 +1,10 @@
 package com.github.kevin.econnoisseur.exchanges.coinex.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.github.kevin.econnoisseur.dto.Order;
+import com.github.kevin.econnoisseur.exchanges.coinex.model.OrderStatusMapping;
+import com.github.kevin.econnoisseur.model.OrderOperation;
+import com.github.kevin.econnoisseur.model.OrderType;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
@@ -85,8 +89,11 @@ public class OrderDto {
         return this;
     }
 
-    public String getAvgPrice() {
-        return avgPrice;
+    public BigDecimal getAvgPrice() {
+        if (null == avgPrice) {
+            return null;
+        }
+        return new BigDecimal(avgPrice);
     }
 
     public OrderDto setAvgPrice(String avgPrice) {
@@ -103,8 +110,11 @@ public class OrderDto {
         return this;
     }
 
-    public String getDealAmount() {
-        return dealAmount;
+    public BigDecimal getDealAmount() {
+        if (null == dealAmount) {
+            return null;
+        }
+        return new BigDecimal(dealAmount);
     }
 
     public OrderDto setDealAmount(String dealAmount) {
@@ -212,5 +222,21 @@ public class OrderDto {
     public OrderDto setTakerFeeRate(String takerFeeRate) {
         this.takerFeeRate = takerFeeRate;
         return this;
+    }
+
+    public static Order convert(OrderDto dto) {
+        Order order = null;
+        if (null != dto) {
+            order = new Order()
+                    .setId(String.valueOf(dto.getId()))
+                    .setAmount(dto.getDealAmount())
+                    .setPrice(dto.getAvgPrice())
+                    .setType(OrderType.get(dto.getOrderType()))
+                    .setOperation(OrderOperation.get(dto.getType()))
+                    .setStatus(OrderStatusMapping.get(dto.getStatus()))
+                    .setTotalAmount(dto.getAmount())
+                    .setTotalPrice(dto.getPrice());
+        }
+        return order;
     }
 }

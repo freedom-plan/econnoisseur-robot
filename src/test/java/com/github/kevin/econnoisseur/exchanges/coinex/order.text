@@ -1,0 +1,10 @@
+order_id	order id
+symbol	symbol of trading pair.eg：KK_ETH
+type	order type，LIMIT，MARKET（Not supported）
+orderop	BUY ，SELL
+price	order price
+origin_amount	order amount
+executed_price	avg of deal price
+executed_amount	deal amount
+executed_quote_amount	deal quote amount
+status	order state： NEW / new order，FILLED / filled，PARTIALLY_FILLED / partially filled，CANCELED / canceled

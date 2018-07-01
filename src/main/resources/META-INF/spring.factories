@@ -1,0 +1,5 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.github.kevin.econnoisseur.configuration.ScheduleConfiguration,\
+com.github.kevin.econnoisseur.configuration.DingTalkConfiguration,\
+com.github.kevin.econnoisseur.exchanges.coinex.configuration.CoinexConfiguration,\
+com.github.kevin.econnoisseur.exchanges.kkcoin.configuration.KkcoinConfiguration

@@ -1,12 +1,7 @@
 package com.github.kevin.econnoisseur.service;
 
-import com.github.kevin.econnoisseur.dto.Balance;
-import com.github.kevin.econnoisseur.dto.Balances;
-import com.github.kevin.econnoisseur.dto.Order;
-import com.github.kevin.econnoisseur.dto.Ticker;
-import com.github.kevin.econnoisseur.exchanges.coinex.dto.ResponseDto;
+import com.github.kevin.econnoisseur.dto.*;
 import com.github.kevin.econnoisseur.model.*;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +10,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Random;
 
 /**
@@ -29,34 +25,46 @@ import java.util.Random;
 public class ClickFarmingService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClickFarmingService.class);
     @Autowired
-    @Qualifier("coinexApi")
+    @Qualifier("kkcoinApi")
     private IApi api;
-
     @Autowired(required = false)
     private DingTalkService dingTalkService;
-    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.BBN_ETH;
+
+    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.IOST_ETH;
     private static final BigDecimal SAFE_WIDE = new BigDecimal("0.00000002");
-    private static final BigDecimal AMOUNT = new BigDecimal("2");
+    private static final BigDecimal AMOUNT = new BigDecimal("200");
+    private static final BigDecimal MIN_AMOUNT = new BigDecimal("200");
 
-    private static final String STATUS_DONE = "done";
 
-//    @Scheduled(cron = "0/5 * * * * ?")
-    @Scheduled(fixedDelayString="1000")
+//    @Scheduled(cron = "0/3 * * * * ?")
+    @Scheduled(fixedDelayString="5000")
     public void run() {
-        Ticker ticker = api.ticker(CURRENT_CURRENCY_PAIR);
+        Balances balances = api.balances();
+        BigDecimal baseAmount = null;
+        BigDecimal counterAmount = null;
+        if (check(balances)) {
+            Balance base = balances.getBalance(CURRENT_CURRENCY_PAIR.getBase());
+            baseAmount = base.getAvailable();
+            LOGGER.info("账号 {} 状态, available: {}, frozen: {}", CURRENT_CURRENCY_PAIR.getBase(), base.getAvailable(), base.getFrozen());
 
+            Balance counter = balances.getBalance(CURRENT_CURRENCY_PAIR.getCounter());
+            counterAmount = counter.getAvailable();
+            LOGGER.info("账号 {} 状态, available: {}, frozen: {}", CURRENT_CURRENCY_PAIR.getCounter(), counter.getAvailable(), counter.getFrozen());
+        }
+
+        Ticker ticker = api.ticker(CURRENT_CURRENCY_PAIR);
         BigDecimal price = isSafeWide(ticker);
+        BigDecimal amount = (null != baseAmount && null != counterAmount && null != price) ? getAmount(baseAmount, counterAmount, price) : AMOUNT;
+
         if (null != price) {
-//            BigDecimal AMOUNT = new BigDecimal(new Random().nextDouble() * 5 + 5)
-//                    .setScale(8, BigDecimal.ROUND_HALF_UP);
             int count = 0;
-            LOGGER.info("挂卖单执行价: {}, 执行数量: {}", price, AMOUNT);
-            Order sell = api.trade(CURRENT_CURRENCY_PAIR, OrderType.LIMIT, OrderOperation.SELL, AMOUNT, price);
+            LOGGER.info("挂卖单执行价: {}, 执行数量: {}", price, amount);
+            Order sell = api.limit(CURRENT_CURRENCY_PAIR, OrderOperation.SELL, price, amount);
             String sellId = null;
             String buyId = null;
-            String sellStatus = null;
-            String buyStatus = null;
-            if (Code.OK == sell.getCode()) {
+            OrderStatus sellStatus = null;
+            OrderStatus buyStatus = null;
+            if (check(sell)) {
                 sellId = sell.getId();
                 sellStatus = sell.getStatus();
             }
@@ -65,104 +73,114 @@ public class ClickFarmingService {
                 return;
             }
 
-            // TODO
-            if (STATUS_DONE.equals(sellStatus)) {
+            if (OrderStatus.FILLED == sellStatus) {
                 LOGGER.info("卖单被吞!\n\n");
-                System.exit(0);
+                return;
             }
 
-            LOGGER.info("挂买单执行价: {}, 执行数量: {}", price, AMOUNT);
-            Order buy = api.trade(CURRENT_CURRENCY_PAIR, OrderType.LIMIT, OrderOperation.BUY, AMOUNT, price);
-            if (Code.OK == buy.getCode()) {
+            LOGGER.info("挂买单执行价: {}, 执行数量: {}", price, amount);
+            Order buy = api.limit(CURRENT_CURRENCY_PAIR, OrderOperation.BUY, price, amount);
+            if (check(buy)) {
                 buyId = buy.getId();
-                buyStatus = sell.getStatus();
+                buyStatus = buy.getStatus();
             }
             if (null == buyId) {
-                api.cancelOrder(CURRENT_CURRENCY_PAIR, sellId);
-                LOGGER.info("取消卖单 {}\n\n", sellId);
+                Order cancel = api.cancelOrder(CURRENT_CURRENCY_PAIR, sellId);
+                LOGGER.info("取消卖单 {}\n\n", cancel.getCode());
                 return;
             }
 
             do {
-                if (StringUtils.isBlank(sellStatus) || !STATUS_DONE.equals(sellStatus)) {
+                if (OrderStatus.FILLED != sellStatus) {
                     sell = api.getOrder(CURRENT_CURRENCY_PAIR, sellId);
-                    if (Code.OK == sell.getCode()) {
+                    if (check(sell)) {
                         sellStatus = sell.getStatus();
                     }
                     LOGGER.info("获取 sell 状态, sellStatus: {}", sellStatus);
                 }
-                if (StringUtils.isBlank(buyStatus) || !STATUS_DONE.equals(buyStatus)) {
+                if (OrderStatus.FILLED != buyStatus) {
                     buy = api.getOrder(CURRENT_CURRENCY_PAIR, buyId);
-                    if (Code.OK == buy.getCode()) {
+                    if (check(buy)) {
                         buyStatus = buy.getStatus();
                     }
                     LOGGER.info("获取 buy 状态, buyStatus: {}", buyStatus);
                 }
 
-                if (STATUS_DONE.equals(buyStatus) && STATUS_DONE.equals(sellStatus)) {
+                if (OrderStatus.FILLED == sellStatus && OrderStatus.FILLED == buyStatus) {
+                    LOGGER.info("卖单完成，买单完成");
+                    break;
+                } else if (OrderStatus.FILLED == sellStatus) {
+                    Order cancel = api.cancelOrder(CURRENT_CURRENCY_PAIR, buyId);
+                    LOGGER.info("卖单完成，取消买单 {}", cancel.getCode());
+                    break;
+                } else if (OrderStatus.FILLED == buyStatus) {
+                    Order cancel = api.cancelOrder(CURRENT_CURRENCY_PAIR, sellId);
+                    LOGGER.info("买单完成，取消卖单 {}", cancel.getCode());
                     break;
                 }
+
                 count++;
             } while (count < 10);
 
-            if (!STATUS_DONE.equals(sellStatus) || !STATUS_DONE.equals(buyStatus)) {
+            if (OrderStatus.FILLED != sellStatus || OrderStatus.FILLED != buyStatus) {
                 if (null != dingTalkService) {
                     dingTalkService.send(new DingTalkService.DingTalkMsg("高危订单出现，请关注", "#### Order Status\n\n"
                             + " * 卖单状态: **" + sellStatus + "**\n"
                             + " * 买单状态: **" + buyStatus + "**\n"
                             + " * 委托价格: **" + price + "**\n"
-                            + " * 委托数量: **" + AMOUNT + "**"));
+                            + " * 委托数量: **" + amount + "**"));
                 }
-                System.exit(0);
             }
             LOGGER.info("本次结束\n\n");
         }
 
     }
 
-    @Scheduled(fixedDelayString="120000")
+//    @Scheduled(fixedDelayString="120000")
     public void check() {
-        Balances balances = api.balances();
-        if (Code.OK == balances.getCode()) {
-            Balance BTC = balances.getBalance(Currency.BTC);
-            LOGGER.info("账号 BTC 状态, available: {}, frozen: {}", BTC.getAvailable(), BTC.getFrozen());
-
-            Balance NANO = balances.getBalance(Currency.NANO);
-            LOGGER.info("账号 NANO 状态, available: {}, frozen: {}", NANO.getAvailable(), NANO.getFrozen());
+        BigDecimal bigDecimal = new BigDecimal(0);
+        Orders orders = api.finishedOrders(CURRENT_CURRENCY_PAIR);
+        if (check(orders)) {
+            for (Order order : orders.getOrders()) {
+                bigDecimal = bigDecimal.add(order.getAmount());
+            }
         }
-//
-//        BigDecimal bigDecimal = new BigDecimal(0);
-//
-//        int pageNum = 1;
-//        PageDto page = null;
-//        do {
-//            ResponseDto<PageDto> finished = api.finishedOrder(CURRENT_MARKET, pageNum, 100);
-//            if (checkResponse(finished)) {
-//                page = finished.getData();
-//                if (null != page) {
-//                    List<OrderDto> orders = page.getData();
-//                    if (!CollectionUtils.isEmpty(orders)) {
-//                        for (OrderDto order : orders) {
-//                            bigDecimal = bigDecimal.add(order.getAmount());
-//                        }
-//                    }
-//                }
-//            }
-//            pageNum++;
-//        } while (null != page && page.getHasNext());
-//        LOGGER.info("$$$$$ 获取交易总量状态, sum: {}\n\n", bigDecimal);
+        LOGGER.info("$$$$$ 获取交易总量状态, sum: {}\n\n", bigDecimal);
+    }
+
+
+    private BigDecimal getAmount(BigDecimal base, BigDecimal counter, BigDecimal price) {
+        BigDecimal amount = base.min(counter.divide(price, RoundingMode.HALF_UP));
+        LOGGER.info("本次能执行最大刷单数量: {}", amount);
+        if (amount.compareTo(MIN_AMOUNT) <= 0) {
+            LOGGER.info("没有足够的币种交易");
+            if (null != dingTalkService) {
+                dingTalkService.send(new DingTalkService.DingTalkMsg("没有足够的币种交易，请关注", "#### Balance Status\n\n"
+                        + " * " + CURRENT_CURRENCY_PAIR.getBase() + ": **" + base + "**\n"
+                        + " * " + CURRENT_CURRENCY_PAIR.getCounter() + ": **" + counter + "**")
+                );
+            }
+            System.exit(0);
+        }
+
+        amount = amount.multiply(new BigDecimal(0.8 - new Random().nextDouble() * 0.15))
+                .setScale(0, BigDecimal.ROUND_DOWN)
+                .max(AMOUNT);
+        LOGGER.info("本次执行的刷单数量: {}", amount);
+        return amount;
     }
 
     private BigDecimal isSafeWide(Ticker ticker) {
         BigDecimal price = null;
-        if (Code.OK == ticker.getCode()) {
+        if (check(ticker)) {
             BigDecimal sell = ticker.getAsk();
             BigDecimal buy = ticker.getBid();
             if (sell.compareTo(buy.add(SAFE_WIDE)) >= 0) {
                 price = getAverage(sell, buy);
             }
         }
-        LOGGER.info("检查盘口宽度是否合适做单：结束 {}", price);
+
+        LOGGER.info("检查盘口宽度是否合适做单：{}, 单价: {}", null != price, price);
         return price;
     }
 
@@ -172,14 +190,9 @@ public class ClickFarmingService {
         return a.add(b).divide(new BigDecimal(2)).setScale(8, BigDecimal.ROUND_HALF_UP);
     }
 
-    /**
-     * 检查返回值
-     * @param responseDto 返回值
-     * @return
-     */
-    private static boolean checkResponse(ResponseDto<?> responseDto) {
+    private static boolean check(BaseResp resp) {
         boolean status = false;
-        if (null != responseDto && 0 == responseDto.getCode() && null != responseDto.getData()) {
+        if (null != resp && Code.OK == resp.getCode()) {
             status = true;
         }
         return status;

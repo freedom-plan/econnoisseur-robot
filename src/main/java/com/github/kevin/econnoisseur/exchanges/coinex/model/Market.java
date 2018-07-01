@@ -15,9 +15,4 @@ public class Market {
                 .append(pair.getBase())
                 .append(pair.getCounter()).toString();
     }
-
-    // TODO
-    public static void main(String[] args) {
-        System.out.println(valueOf(CurrencyPair.BBN_ETH));
-    }
 }

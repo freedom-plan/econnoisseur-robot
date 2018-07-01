@@ -2,13 +2,14 @@ package com.github.kevin.econnoisseur.exchanges.coinex.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.kevin.econnoisseur.dto.*;
-import com.github.kevin.econnoisseur.exchanges.coinex.dto.BalanceDto;
-import com.github.kevin.econnoisseur.exchanges.coinex.dto.ResponseDto;
-import com.github.kevin.econnoisseur.exchanges.coinex.dto.TickerDto;
+import com.github.kevin.econnoisseur.exchanges.coinex.dto.*;
 import com.github.kevin.econnoisseur.exchanges.coinex.model.CoinexApiPath;
 import com.github.kevin.econnoisseur.exchanges.coinex.model.Market;
 import com.github.kevin.econnoisseur.exchanges.coinex.util.MD5Util;
-import com.github.kevin.econnoisseur.model.*;
+import com.github.kevin.econnoisseur.model.Code;
+import com.github.kevin.econnoisseur.model.Currency;
+import com.github.kevin.econnoisseur.model.CurrencyPair;
+import com.github.kevin.econnoisseur.model.OrderOperation;
 import com.github.kevin.econnoisseur.service.IApi;
 import com.github.kevin.econnoisseur.util.HttpRequest;
 import com.github.kevin.econnoisseur.util.JacksonUtil;
@@ -27,8 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.github.kevin.econnoisseur.exchanges.coinex.model.CoinexApiPath.BALANCE_PATH;
-import static com.github.kevin.econnoisseur.exchanges.coinex.model.CoinexApiPath.TICKER_PATH;
+import static com.github.kevin.econnoisseur.exchanges.coinex.model.CoinexApiPath.*;
 
 /**
  * CoinexApi
@@ -89,33 +89,135 @@ public class CoinexApi implements IApi {
                 }
             });
         }
-
         return balances;
     }
 
     @Override
-    public Order trade(CurrencyPair pair, OrderType type, OrderOperation operation, BigDecimal price, BigDecimal amount) {
-        return null;
+    public Order limit(CurrencyPair pair, OrderOperation operation, BigDecimal price, BigDecimal amount) {
+        Order order = null;
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("market", Market.valueOf(pair));
+        param.put("type", operation.name().toLowerCase());
+        param.put("amount", String.valueOf(amount));
+        param.put("price", String.valueOf(price));
+        String response = doRequest(PUT_LIMIT_PATH, param);
+        ResponseDto<OrderDto> dto = JacksonUtil.toObject(response, new TypeReference<ResponseDto<OrderDto>>(){});
+        if (checkResponse(dto)) {
+            order = OrderDto.convert(dto.getData());
+        } else {
+            order = new Order(Code.SERVER);
+        }
+        return order;
+    }
+
+    @Override
+    public Order market(CurrencyPair pair, OrderOperation operation, BigDecimal amount) {
+        Order order = null;
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("market", Market.valueOf(pair));
+        param.put("type", operation.name().toLowerCase());
+        param.put("amount", String.valueOf(amount));
+        String response = doRequest(PUT_MARKET_PATH, param);
+        ResponseDto<OrderDto> dto = JacksonUtil.toObject(response, new TypeReference<ResponseDto<OrderDto>>(){});
+        if (checkResponse(dto)) {
+            order = OrderDto.convert(dto.getData());
+        } else {
+            order = new Order(Code.SERVER);
+        }
+        return order;
     }
 
     @Override
     public Orders pandingOrders(CurrencyPair pair) {
-        return null;
+        return orders(PENDING_ORDER_PATH, pair);
     }
 
     @Override
     public Orders finishedOrders(CurrencyPair pair) {
-        return null;
+        return orders(FINISHED_ORDER_PATH, pair);
     }
 
     @Override
     public Order getOrder(CurrencyPair pair, String orderId) {
-        return null;
+        return order(GET_ORDER_PATH, pair, orderId);
     }
 
     @Override
     public Order cancelOrder(CurrencyPair pair, String orderId) {
-        return null;
+        return order(CANCEL_ORDER_PATH, pair, orderId);
+    }
+
+    public Order order(CoinexApiPath apiPath, CurrencyPair pair, String orderId) {
+        Order order = null;
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("market", Market.valueOf(pair));
+        param.put("id", Long.valueOf(orderId));
+        String response = doRequest(apiPath, param);
+        ResponseDto<OrderDto> dto = JacksonUtil.toObject(response, new TypeReference<ResponseDto<OrderDto>>(){});
+        if (checkResponse(dto)) {
+            order = OrderDto.convert(dto.getData());
+        } else {
+            order = new Order(Code.SERVER);
+        }
+        return order;
+    }
+
+    private ResponseDto<PageDto> pageableOrders(CoinexApiPath apiPath, CurrencyPair pair, int page, int size) {
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("market", Market.valueOf(pair));
+        param.put("page", page);
+        param.put("limit", size);
+        String response = doRequest(apiPath, param);
+        return JacksonUtil.toObject(response, new TypeReference<ResponseDto<PageDto>>(){});
+    }
+
+    private Orders orders(CoinexApiPath apiPath, CurrencyPair pair) {
+        Orders orders = new Orders(Code.SERVER);
+        int pageNum = 1;
+        PageDto page;
+
+        do {
+            page = null;
+            ResponseDto<PageDto> dto = pageableOrders(apiPath, pair, pageNum, 100);
+            if (checkResponse(dto) && null != dto.getData()) {
+                page = dto.getData();
+                List<OrderDto> list = page.getData();
+                if (!CollectionUtils.isEmpty(list)) {
+                    Order tmp = null;
+                    for (OrderDto item : list) {
+                        tmp = OrderDto.convert(item);
+                        if (null != tmp) {
+                            orders.addOrder(tmp);
+                        }
+                    }
+                }
+            }
+            pageNum++;
+        } while (null != page && page.getHasNext());
+
+        return orders;
+    }
+
+    public String depth(CurrencyPair pair, String merge, Integer limit) {
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("market", Market.valueOf(pair));
+        param.put("merge", merge);
+        param.put("limit", String.valueOf(limit));
+        return doRequest(DEPTH_PATH, param);
+    }
+
+    public ResponseDto<List<TradesDto>> trades(CurrencyPair pair) {
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("market", Market.valueOf(pair));
+        String response = doRequest(TRADES_PATH, param);
+        return JacksonUtil.toObject(response, new TypeReference<ResponseDto<List<TradesDto>>>(){});
+    }
+
+    public String kline(CurrencyPair pair, String type) {
+        HashMap<String, Object> param = new HashMap<>();
+        param.put("market", Market.valueOf(pair));
+        param.put("type", type);
+        return doRequest(KLINE_PATH, param);
     }
 
     /**

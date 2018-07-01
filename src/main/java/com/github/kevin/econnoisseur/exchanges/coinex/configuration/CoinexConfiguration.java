@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Configuration;
  * 2018年06月21日 09:32:00
  */
 @Configuration
-@ConditionalOnProperty(prefix = "coinex", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(name = "econnoisseur.coinex.enabled", havingValue = "true")
 @EnableConfigurationProperties(CoinexProperties.class)
 public class CoinexConfiguration {
     @Autowired
