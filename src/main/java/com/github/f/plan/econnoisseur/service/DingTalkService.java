@@ -30,7 +30,7 @@ public class DingTalkService {
         String response = HttpRequest.post(dingTalkPath, JacksonUtil.toJson(dingTalkMsg));
         if (response != null) {
             // 请求成功
-            LOGGER.info("发送钉钉成功");
+//            LOGGER.info("发送钉钉成功");
         } else {
             LOGGER.info("发送钉钉失败");
         }

@@ -323,6 +323,7 @@ public class KkcoinApi implements IApi {
             try {
                 action.accept(response, model);
             } catch (Exception e) {
+                LOGGER.error("返回报文：{}", response);
                 LOGGER.error("获取ticker失败", e);
             }
         }

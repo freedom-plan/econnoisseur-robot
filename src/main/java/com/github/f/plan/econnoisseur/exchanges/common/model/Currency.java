@@ -14,6 +14,7 @@ public enum Currency {
     ETH,
     BTC,
     BBN,
+    KK,
     NANO,
     IOST,
     ;
