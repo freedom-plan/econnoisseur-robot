@@ -41,7 +41,7 @@ public class ClickFarmingService {
 
     // 平台币
     private static final Currency PLATFORM_CURRENCY = Currency.KK;
-    private static final BigDecimal MIN_PLATFORM_CURRENCY_AMOUNT = new BigDecimal("100");
+    private static final BigDecimal MIN_PLATFORM_CURRENCY_AMOUNT = new BigDecimal("200");
     // 交易币
     private static final BigDecimal MAX_HOLD_AMOUNT = new BigDecimal("6000");
     private static final BigDecimal MIN_AMOUNT = new BigDecimal("200");
@@ -128,8 +128,8 @@ public class ClickFarmingService {
 
             if (OrderStatus.FILLED != priorityStatus || OrderStatus.FILLED != secondStatus) {
                 if (null != dingTalkService) {
-                    OrderOperation operation = OrderStatus.FILLED != priorityStatus ? priority : second;
-                    waitOrExitAndNotify(30000D, false, operation + "订单被吞", "####" + operation + "订单被吞\n\n"
+                    OrderOperation operation = OrderStatus.FILLED == priorityStatus ? priority : second;
+                    waitOrExitAndNotify(30000D, false, operation + "订单被吞", "#### " + operation + "订单被吞\n\n"
                             + " * " + priority + "单状态: **" + priorityStatus + "**\n"
                             + " * " + second + "单状态: **" + secondStatus + "**\n"
                             + " * 委托价格: **" + price + "**\n"
@@ -160,44 +160,44 @@ public class ClickFarmingService {
         if (null != LAST_TRADE_PRICE) {
             Balances balances = api.balances();
             if (check(balances)) {
-                Balance kk = balances.getBalance(PLATFORM_CURRENCY);
-                if (null == kk || kk.getAvailable().compareTo(MIN_PLATFORM_CURRENCY_AMOUNT) < 0) {
+                Balance platform = balances.getBalance(PLATFORM_CURRENCY);
+                if (null == platform || platform.getAvailable().compareTo(MIN_PLATFORM_CURRENCY_AMOUNT) < 0) {
                      waitOrExitAndNotify(60000 * Math.pow(SUSPEND_INDEX++, 4), false, "没有足够的平台币", "#### 没有足够的平台币\n\n"
-                            + " * " + PLATFORM_CURRENCY + " : ** " + (null != kk ? kk.getAvailable() : 0) + " **");
-                }
+                            + " * " + PLATFORM_CURRENCY + " : ** " + (null != platform ? platform.getAvailable() : 0) + " **");
+                } else {
+                    Balance base = balances.getBalance(pair.getBase());
+                    BigDecimal baseAmount = base.getAvailable();
+                    LOGGER.info("账号 {} 状态, available: {}, frozen: {}", pair.getBase(), base.getAvailable(), base.getFrozen().doubleValue());
 
-                Balance base = balances.getBalance(pair.getBase());
-                BigDecimal baseAmount = base.getAvailable();
-                LOGGER.info("账号 {} 状态, available: {}, frozen: {}", pair.getBase(), base.getAvailable(), base.getFrozen().doubleValue());
+                    Balance counter = balances.getBalance(pair.getCounter());
+                    BigDecimal counterAmount = counter.getAvailable();
+                    LOGGER.info("账号 {} 状态, available: {}, frozen: {}", pair.getCounter(), counter.getAvailable(), counter.getFrozen().doubleValue());
 
-                Balance counter = balances.getBalance(pair.getCounter());
-                BigDecimal counterAmount = counter.getAvailable();
-                LOGGER.info("账号 {} 状态, available: {}, frozen: {}", pair.getCounter(), counter.getAvailable(), counter.getFrozen().doubleValue());
+                    if (null != baseAmount && null != counterAmount) {
+                        BigDecimal buyVol = counterAmount.divide(LAST_TRADE_PRICE, RoundingMode.HALF_UP);
 
-                if (null != baseAmount && null != counterAmount) {
-                    BigDecimal buyVol = counterAmount.divide(LAST_TRADE_PRICE, RoundingMode.HALF_UP);
+                        // 计算交易量
+                        BigDecimal amount = baseAmount.min(buyVol);
+                        LOGGER.info("本次能执行最大刷单数量: {}", amount);
 
-                    // 计算交易量
-                    BigDecimal amount = baseAmount.min(buyVol);
-                    LOGGER.info("本次能执行最大刷单数量: {}", amount);
+                        if (amount.compareTo(MIN_AMOUNT) <= 0) {
+                            waitOrExitAndNotify(60000 * Math.pow(SUSPEND_INDEX++, 4), false, "没有足够的币种交易", "#### 没有足够的币种交易\n\n"
+                                    + " * " + pair.getBase() + " : ** " + baseAmount + " **\n"
+                                    + " * " + pair.getCounter() + " : ** " + counterAmount + " **");
+                        } else {
+                            amount = amount.multiply(new BigDecimal(0.8 - new Random().nextDouble() * 0.15))
+                                    .setScale(0, BigDecimal.ROUND_DOWN)
+                                    .max(MIN_AMOUNT);
+                            LOGGER.info("本次执行的刷单数量: {}", amount);
+                            preTradeInfo.setAmount(amount);
 
-                    if (amount.compareTo(MIN_AMOUNT) <= 0) {
-                        waitOrExitAndNotify(60000 * Math.pow(SUSPEND_INDEX++, 4), false, "没有足够的币种交易", "#### 没有足够的币种交易\n\n"
-                                + " * " + pair.getBase() + " : ** " + baseAmount + " **\n"
-                                + " * " + pair.getCounter() + " : ** " + counterAmount + " **");
-                    } else {
-                        amount = amount.multiply(new BigDecimal(0.8 - new Random().nextDouble() * 0.15))
-                                .setScale(0, BigDecimal.ROUND_DOWN)
-                                .max(MIN_AMOUNT);
-                        LOGGER.info("本次执行的刷单数量: {}", amount);
-                        preTradeInfo.setAmount(amount);
-
-                        // 评估操作顺序
-                        BigDecimal doubleBase = baseAmount.multiply(new BigDecimal(2));
-                        if (doubleBase.compareTo(MAX_HOLD_AMOUNT) < 0 && doubleBase.compareTo(buyVol) < 0) {
-                            LOGGER.info("交换交易顺序，{} <----> {}", OrderOperation.BUY, OrderOperation.SELL);
-                            preTradeInfo.setPriority(OrderOperation.BUY)
-                                    .setSecond(OrderOperation.SELL);
+                            // 评估操作顺序
+                            BigDecimal doubleBase = baseAmount.multiply(new BigDecimal(2));
+                            if (doubleBase.compareTo(MAX_HOLD_AMOUNT) < 0 && doubleBase.compareTo(buyVol) < 0) {
+                                LOGGER.info("交换交易顺序，{} <----> {}", OrderOperation.BUY, OrderOperation.SELL);
+                                preTradeInfo.setPriority(OrderOperation.BUY)
+                                        .setSecond(OrderOperation.SELL);
+                            }
                         }
                     }
                 }
