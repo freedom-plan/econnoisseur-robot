@@ -1,7 +1,6 @@
 package com.github.f.plan.econnoisseur.exchanges.kkcoin.configuration;
 
 import com.github.f.plan.econnoisseur.exchanges.kkcoin.service.KkcoinApi;
-import com.github.f.plan.econnoisseur.exchanges.kkcoin.service.KkcoinApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

@@ -1,8 +1,8 @@
 package com.github.f.plan.econnoisseur.exchanges.coinex.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.github.f.plan.econnoisseur.exchanges.common.dto.Order;
 import com.github.f.plan.econnoisseur.exchanges.coinex.model.OrderStatusMapping;
+import com.github.f.plan.econnoisseur.exchanges.common.dto.Order;
 import com.github.f.plan.econnoisseur.exchanges.common.model.OrderOperation;
 import com.github.f.plan.econnoisseur.exchanges.common.model.OrderType;
 import org.apache.commons.lang3.StringUtils;

@@ -4,24 +4,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.github.f.plan.econnoisseur.exchanges.coinex.dto.*;
 import com.github.f.plan.econnoisseur.exchanges.coinex.model.CoinexApiPath;
 import com.github.f.plan.econnoisseur.exchanges.coinex.model.Market;
-import com.github.f.plan.econnoisseur.exchanges.coinex.util.MD5Util;
+import com.github.f.plan.econnoisseur.exchanges.coinex.util.SignUtil;
 import com.github.f.plan.econnoisseur.exchanges.common.dto.*;
 import com.github.f.plan.econnoisseur.exchanges.common.iface.IApi;
-import com.github.f.plan.econnoisseur.exchanges.common.model.Code;
-import com.github.f.plan.econnoisseur.exchanges.common.model.Currency;
-import com.github.f.plan.econnoisseur.exchanges.common.model.CurrencyPair;
-import com.github.f.plan.econnoisseur.util.HttpRequest;
-import com.github.f.plan.econnoisseur.util.JacksonUtil;
-import com.github.f.plan.econnoisseur.exchanges.coinex.dto.*;
-import com.github.f.plan.econnoisseur.exchanges.coinex.model.CoinexApiPath;
-import com.github.f.plan.econnoisseur.exchanges.coinex.model.Market;
-import com.github.f.plan.econnoisseur.exchanges.coinex.util.MD5Util;
-import com.github.f.plan.econnoisseur.exchanges.common.dto.*;
 import com.github.f.plan.econnoisseur.exchanges.common.model.Code;
 import com.github.f.plan.econnoisseur.exchanges.common.model.Currency;
 import com.github.f.plan.econnoisseur.exchanges.common.model.CurrencyPair;
 import com.github.f.plan.econnoisseur.exchanges.common.model.OrderOperation;
-import com.github.f.plan.econnoisseur.exchanges.common.iface.IApi;
 import com.github.f.plan.econnoisseur.util.HttpRequest;
 import com.github.f.plan.econnoisseur.util.JacksonUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -38,8 +27,6 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static com.github.f.plan.econnoisseur.exchanges.coinex.model.CoinexApiPath.*;
 
 /**
  * CoinexApi
@@ -251,7 +238,7 @@ public class CoinexApi implements IApi {
         params.put("access_id", this.accessId);
         params.put("tonce", System.currentTimeMillis());
 
-        String authorization = MD5Util.buildMysignV1(params, this.secretKey);
+        String authorization = SignUtil.buildMysignV1(params, this.secretKey);
         return this.request(urlPrefix, apiPath, params, authorization);
     }
 

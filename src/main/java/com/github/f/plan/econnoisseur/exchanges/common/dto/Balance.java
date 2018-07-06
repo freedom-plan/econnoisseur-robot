@@ -15,6 +15,15 @@ public class Balance {
     private BigDecimal frozen;
 
     public BigDecimal getTotal() {
+        if (null == total) {
+            total = new BigDecimal(0);
+            if (null != available) {
+                total = total.add(available);
+            }
+            if (null != frozen) {
+                total = total.add(frozen);
+            }
+        }
         return total;
     }
 

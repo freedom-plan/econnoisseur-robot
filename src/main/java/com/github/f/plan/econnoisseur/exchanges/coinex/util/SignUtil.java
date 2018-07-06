@@ -1,11 +1,39 @@
 package com.github.f.plan.econnoisseur.exchanges.coinex.util;
 
+import com.github.f.plan.econnoisseur.util.MD5Util;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class StringUtil {
+/**
+ * SignUtil
+ *
+ * @author Kevin Huang
+ * @since version
+ * 2018年07月05日 10:00:00
+ */
+public class SignUtil {
+    /**
+     * 生成签名结果
+     *
+     * @param sArray 要签名的数组
+     * @param secretKey key
+     * @return 签名结果字符串
+     */
+    public static String buildMysignV1(Map<String, Object> sArray, String secretKey) {
+        String mysign = "";
+        try {
+            String prestr = createLinkString(sArray);
+            prestr = prestr + "&secret_key=" + secretKey;
+            mysign = MD5Util.md5Upper(prestr);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return mysign;
+    }
+
     /**
      * 把数组所有元素排序，并按照&quot;参数=参数值&quot;的模式用&quot;&amp;&amp;&quot;字符拼接成字符串.
      *

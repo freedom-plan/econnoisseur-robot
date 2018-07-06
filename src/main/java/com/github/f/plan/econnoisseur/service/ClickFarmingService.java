@@ -30,7 +30,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class ClickFarmingService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClickFarmingService.class);
     @Autowired
-    @Qualifier("kkcoinApi")
+    @Qualifier("gateIoApi")
     private IApi api;
     @Autowired(required = false)
     private DingTalkService dingTalkService;
@@ -52,7 +52,7 @@ public class ClickFarmingService {
     private static int SUSPEND_INDEX = 1;
     private static BigDecimal LAST_TRADE_PRICE = null;
 
-    @Scheduled(fixedDelayString="4000")
+    @Scheduled(fixedDelayString="3000")
     public void run() throws InterruptedException, ExecutionException {
         String priorityId = null;
         String secondId = null;
@@ -129,7 +129,7 @@ public class ClickFarmingService {
             if (OrderStatus.FILLED != priorityStatus || OrderStatus.FILLED != secondStatus) {
                 if (null != dingTalkService) {
                     OrderOperation operation = OrderStatus.FILLED == priorityStatus ? priority : second;
-                    waitOrExitAndNotify(30000D, false, operation + "订单被吞", "#### " + operation + "订单被吞\n\n"
+                    waitOrExitAndNotify(1000D, false, operation + "订单被吞", "#### " + operation + "订单被吞\n\n"
                             + " * " + priority + "单状态: **" + priorityStatus + "**\n"
                             + " * " + second + "单状态: **" + secondStatus + "**\n"
                             + " * 委托价格: **" + price + "**\n"
@@ -162,7 +162,7 @@ public class ClickFarmingService {
             if (check(balances)) {
                 Balance platform = balances.getBalance(PLATFORM_CURRENCY);
                 if (null == platform || platform.getAvailable().compareTo(MIN_PLATFORM_CURRENCY_AMOUNT) < 0) {
-                     waitOrExitAndNotify(60000 * Math.pow(SUSPEND_INDEX++, 4), false, "没有足够的平台币", "#### 没有足够的平台币\n\n"
+                     waitOrExitAndNotify(60000D , false, "没有足够的平台币", "#### 没有足够的平台币\n\n"
                             + " * " + PLATFORM_CURRENCY + " : ** " + (null != platform ? platform.getAvailable() : 0) + " **");
                 } else {
                     Balance base = balances.getBalance(pair.getBase());
@@ -181,7 +181,7 @@ public class ClickFarmingService {
                         LOGGER.info("本次能执行最大刷单数量: {}", amount);
 
                         if (amount.compareTo(MIN_AMOUNT) <= 0) {
-                            waitOrExitAndNotify(60000 * Math.pow(SUSPEND_INDEX++, 4), false, "没有足够的币种交易", "#### 没有足够的币种交易\n\n"
+                            waitOrExitAndNotify(60000D , false, "没有足够的币种交易", "#### 没有足够的币种交易\n\n"
                                     + " * " + pair.getBase() + " : ** " + baseAmount + " **\n"
                                     + " * " + pair.getCounter() + " : ** " + counterAmount + " **");
                         } else {

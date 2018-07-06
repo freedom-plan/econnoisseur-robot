@@ -1,6 +1,5 @@
 package com.github.f.plan.econnoisseur.exchanges.common.dto;
 
-import com.github.f.plan.econnoisseur.exchanges.common.model.OrderType;
 import com.github.f.plan.econnoisseur.exchanges.common.model.Code;
 import com.github.f.plan.econnoisseur.exchanges.common.model.OrderOperation;
 import com.github.f.plan.econnoisseur.exchanges.common.model.OrderStatus;

@@ -2,8 +2,6 @@ package com.github.f.plan.econnoisseur.service;
 
 import com.github.f.plan.econnoisseur.util.HttpRequest;
 import com.github.f.plan.econnoisseur.util.JacksonUtil;
-import com.github.f.plan.econnoisseur.util.HttpRequest;
-import com.github.f.plan.econnoisseur.util.JacksonUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

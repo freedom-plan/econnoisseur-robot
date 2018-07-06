@@ -4,22 +4,16 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.github.f.plan.econnoisseur.exchanges.common.dto.*;
+import com.github.f.plan.econnoisseur.exchanges.common.iface.IApi;
 import com.github.f.plan.econnoisseur.exchanges.common.model.*;
 import com.github.f.plan.econnoisseur.exchanges.kkcoin.dto.BalanceDto;
 import com.github.f.plan.econnoisseur.exchanges.kkcoin.model.KkcoinApiPath;
 import com.github.f.plan.econnoisseur.exchanges.kkcoin.model.Market;
 import com.github.f.plan.econnoisseur.exchanges.kkcoin.util.RSAUtil;
-import com.github.f.plan.econnoisseur.exchanges.common.iface.IApi;
 import com.github.f.plan.econnoisseur.util.HttpRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.message.BasicHeader;
-import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
@@ -27,14 +21,12 @@ import org.springframework.util.CollectionUtils;
 import java.math.BigDecimal;
 import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
-import static com.github.f.plan.econnoisseur.exchanges.kkcoin.model.KkcoinApiPath.*;
 import static com.github.f.plan.econnoisseur.exchanges.common.model.Code.OK;
 import static com.github.f.plan.econnoisseur.exchanges.common.model.Code.SERVER;
+import static com.github.f.plan.econnoisseur.exchanges.kkcoin.model.KkcoinApiPath.*;
 
 /**
  * KkcoinApi
@@ -71,17 +63,17 @@ public class KkcoinApi implements IApi {
                 .fluentPut("symbol", Market.valueOf(pair));
 
         String response = doRequest(TICKER_PATH, param);
-        exec(response, ticker, (resp, dto) -> {
+        HttpRequest.handler(response, ticker, (resp, dto) -> {
             JSONArray array = JSON.parseArray(resp);
-                if (null != array && array.size() == 12) {
-                    dto.setBid(array.getBigDecimal(1))
-                            .setAsk(array.getBigDecimal(3))
-                            .setHigh(array.getBigDecimal(9))
-                            .setLow(array.getBigDecimal(10))
-                            .setLast(array.getBigDecimal(7))
-                            .setVol(array.getBigDecimal(8))
-                            .setCode(OK);
-                }
+            if (null != array && array.size() == 12) {
+                dto.setBid(array.getBigDecimal(1))
+                        .setAsk(array.getBigDecimal(3))
+                        .setHigh(array.getBigDecimal(9))
+                        .setLow(array.getBigDecimal(10))
+                        .setLast(array.getBigDecimal(7))
+                        .setVol(array.getBigDecimal(8))
+                        .setCode(OK);
+            }
         });
         return ticker;
     }
@@ -90,7 +82,7 @@ public class KkcoinApi implements IApi {
     public Balances balances() {
         Balances balances = new Balances(SERVER);
         String response = doRequest(BALANCE_PATH, null);
-        exec(response, balances, (resp, dto) -> {
+        HttpRequest.handler(response, balances, (resp, dto) -> {
             List<BalanceDto> balArray = JSON.parseArray(resp, BalanceDto.class);
             if (!CollectionUtils.isEmpty(balArray)) {
                 for (BalanceDto item : balArray) {
@@ -108,8 +100,8 @@ public class KkcoinApi implements IApi {
     /**
      * 委托交易 done
      *
-     * @param pair    交易对符号
-     * @param operation   BUY / 买，SELL / 卖
+     * @param pair      交易对符号
+     * @param operation BUY / 买，SELL / 卖
      * @param price     委托价格
      * @param amount    委托数量
      * @return
@@ -125,7 +117,7 @@ public class KkcoinApi implements IApi {
                         .fluentPut("symbol", Market.valueOf(pair));
         String response = doRequest(TRADE_PATH, jsonObject);
 
-        exec(response, order, (resp, dto) -> {
+        HttpRequest.handler(response, order, (resp, dto) -> {
             JSONArray trade = JSON.parseArray(resp);
             if (!CollectionUtils.isEmpty(trade)) {
                 String code = trade.getJSONObject(0).getString("code");
@@ -154,7 +146,7 @@ public class KkcoinApi implements IApi {
                 .fluentPut("symbol", Market.valueOf(pair));
         String response = doRequest(ORDERS_PATH, jsonObject);
 
-        exec(response, orders, (resp, dto) -> {
+        HttpRequest.handler(response, orders, (resp, dto) -> {
             JSONArray array = JSON.parseArray(resp);
             if (!CollectionUtils.isEmpty(array)) {
                 for (Object item : array) {
@@ -191,7 +183,7 @@ public class KkcoinApi implements IApi {
         jsonObject.put("id", orderId);
         String response = doRequest(ORDER_STATE_PATH, jsonObject);
 
-        exec(response, order, (resp, dto) -> {
+        HttpRequest.handler(response, order, (resp, dto) -> {
             JSONObject object = JSONObject.parseObject(resp);
             if (null != dto) {
                 dto.setId(object.getString("order_id"))
@@ -222,7 +214,7 @@ public class KkcoinApi implements IApi {
                 .fluentPut("id", orderId);
         String response = doRequest(CANCEL_TRADE, jsonObject);
 
-        exec(response, order, (resp, dto) -> {
+        HttpRequest.handler(response, order, (resp, dto) -> {
             JSONArray cancelArray = JSON.parseArray(resp);
             if (!CollectionUtils.isEmpty(cancelArray)) {
                 String code = cancelArray.getJSONObject(0).getString("code");
@@ -294,40 +286,7 @@ public class KkcoinApi implements IApi {
      */
     private String request(String urlPrefix, KkcoinApiPath apiPath, Map<String, Object> map, Header... headers) {
         String url = urlPrefix + apiPath.getPath();
-        HttpRequestBase http;
-        switch (apiPath.getMethod()) {
-            case "POST":
-                HttpPost httpPost = new HttpPost(url);
-                if (!CollectionUtils.isEmpty(map)) {
-                    List<NameValuePair> params = new ArrayList<>();
-                    map.forEach((key, value) -> params.add(new BasicNameValuePair(key, String.valueOf(value))));
-                    httpPost.setEntity(new UrlEncodedFormEntity(params, HttpRequest.DEFAULT_CHARSET));
-                }
-                http = httpPost;
-                break;
-            default: // "GET"
-                HttpGet httpGet = new HttpGet(HttpRequest.generateURL(url, map));
-                http = httpGet;
-                break;
-        }
-
-        http.setConfig(HttpRequest.CONFIG);
-        for (Header header : headers) {
-            http.addHeader(header);
-        }
-        return HttpRequest.execute(http);
+        return HttpRequest.request(url, apiPath.getMethod(), map, headers);
     }
-
-    private <T extends BaseResp> void exec(String response, T model, BiConsumer<String, T> action) {
-        if (StringUtils.isNotBlank(response)) {
-            try {
-                action.accept(response, model);
-            } catch (Exception e) {
-                LOGGER.error("返回报文：{}", response);
-                LOGGER.error("获取ticker失败", e);
-            }
-        }
-    }
-
 }
 

@@ -2,8 +2,6 @@ package com.github.f.plan.econnoisseur.exchanges.common.dto;
 
 import com.github.f.plan.econnoisseur.exchanges.common.model.Code;
 import com.github.f.plan.econnoisseur.exchanges.common.model.Currency;
-import com.github.f.plan.econnoisseur.exchanges.common.model.Code;
-import com.github.f.plan.econnoisseur.exchanges.common.model.Currency;
 
 import java.util.HashMap;
 import java.util.Map;

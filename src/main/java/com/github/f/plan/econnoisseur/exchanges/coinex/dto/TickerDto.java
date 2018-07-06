@@ -2,7 +2,6 @@ package com.github.f.plan.econnoisseur.exchanges.coinex.dto;
 
 
 import com.github.f.plan.econnoisseur.exchanges.common.model.Code;
-import com.github.f.plan.econnoisseur.exchanges.common.model.Code;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;

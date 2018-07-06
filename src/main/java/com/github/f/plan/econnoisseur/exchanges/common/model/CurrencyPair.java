@@ -1,8 +1,6 @@
 package com.github.f.plan.econnoisseur.exchanges.common.model;
 
-import static com.github.f.plan.econnoisseur.exchanges.common.model.Currency.BBN;
-import static com.github.f.plan.econnoisseur.exchanges.common.model.Currency.ETH;
-import static com.github.f.plan.econnoisseur.exchanges.common.model.Currency.IOST;
+import static com.github.f.plan.econnoisseur.exchanges.common.model.Currency.*;
 
 /**
  * CurrencyPair

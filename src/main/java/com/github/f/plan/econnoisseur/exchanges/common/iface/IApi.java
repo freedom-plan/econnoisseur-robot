@@ -5,11 +5,6 @@ import com.github.f.plan.econnoisseur.exchanges.common.dto.Order;
 import com.github.f.plan.econnoisseur.exchanges.common.dto.Orders;
 import com.github.f.plan.econnoisseur.exchanges.common.dto.Ticker;
 import com.github.f.plan.econnoisseur.exchanges.common.model.CurrencyPair;
-import com.github.f.plan.econnoisseur.exchanges.common.dto.Balances;
-import com.github.f.plan.econnoisseur.exchanges.common.dto.Order;
-import com.github.f.plan.econnoisseur.exchanges.common.dto.Orders;
-import com.github.f.plan.econnoisseur.exchanges.common.dto.Ticker;
-import com.github.f.plan.econnoisseur.exchanges.common.model.CurrencyPair;
 import com.github.f.plan.econnoisseur.exchanges.common.model.OrderOperation;
 
 import java.math.BigDecimal;
