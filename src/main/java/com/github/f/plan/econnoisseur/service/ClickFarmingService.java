@@ -198,9 +198,7 @@ public class ClickFarmingService {
                     BigDecimal amount = baseAmount.min(buyVol);
                     LOGGER.info("本次能执行最大刷单数量: {}", amount);
 
-                    if (!this.checkMining(amount, MIN_AMOUNT)) {
-                        preTradeInfo.setSuspend(true);
-                    } else if (amount.compareTo(MIN_AMOUNT) > 0) {
+                    if (amount.compareTo(MIN_AMOUNT) > 0) {
                         amount = amount.multiply(new BigDecimal(0.8 - new Random().nextDouble() * 0.15))
                                 .setScale(0, BigDecimal.ROUND_DOWN)
                                 .max(MIN_AMOUNT);
@@ -215,7 +213,9 @@ public class ClickFarmingService {
                                     .setSecond(OrderOperation.SELL);
                         }
                     } else {
-                        // 自动购买
+                        waitOrExitAndNotify(60000D , false, "没有足够的币种交易", "#### 没有足够的币种交易\n\n"
+                                + " * " + pair.getBase() + " : ** " + preTradeInfo.getBaseAmount() + " **\n"
+                                + " * " + pair.getCounter() + " : ** " + preTradeInfo.getCounterAmount() + " **");
                     }
 
                 }
@@ -224,26 +224,25 @@ public class ClickFarmingService {
         }
 
         // 评估价格
-        if (preTradeInfo.isSuspend()) {
-            LOGGER.info("——————————> 休息60s\n\n");
-            Thread.sleep(60000);
-        } if (null != preTradeInfo.getAmount()) {
+        if (null != preTradeInfo.getAmount()) {
             Ticker ticker = api.ticker(pair);
-            preTradeInfo.setPrice(this.getPrice(ticker, preTradeInfo.getPriority()));
-            if (null != preTradeInfo.getPrice()) {
-                LAST_TRADE_PRICE = preTradeInfo.getPrice();
-            }
-        } else if (null != LAST_TRADE_PRICE) {
-            waitOrExitAndNotify(60000D , false, "没有足够的币种交易", "#### 没有足够的币种交易\n\n"
-                    + " * " + pair.getBase() + " : ** " + preTradeInfo.getBaseAmount() + " **\n"
-                    + " * " + pair.getCounter() + " : ** " + preTradeInfo.getCounterAmount() + " **");
-        }
+            BigDecimal price = this.getPrice(ticker, preTradeInfo.getPriority());
+            if (null != price) {
+                LAST_TRADE_PRICE = price;
+                if (!this.checkMining(preTradeInfo.getAmount(), MIN_AMOUNT)) {
+                    preTradeInfo.setSuspend(true);
+                    LOGGER.info("——————————> 休息60s\n\n");
+                    Thread.sleep(60000);
+                }
 
+                preTradeInfo.setPrice(price);
+            }
+        }
         return preTradeInfo;
     }
 
     // 最大挖矿折合交易币种数量
-    private boolean checkMining(BigDecimal preAmount, BigDecimal minAmount) throws InterruptedException {
+    private boolean checkMining(BigDecimal preAmount, BigDecimal minAmount) {
         boolean result = true;
         if (MINING) {
             if (null == MINING_INFO) {
