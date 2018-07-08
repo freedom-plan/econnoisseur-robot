@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -17,8 +18,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  *
@@ -37,7 +38,7 @@ public class ClickFarmingService {
     @Autowired(required = false)
     private DingTalkService dingTalkService;
     @Autowired
-    private ScheduledExecutorService taskExecutor;
+    private ExecutorService taskExecutor;
 
     private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.CARD_ETH;
 

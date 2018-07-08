@@ -6,8 +6,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * ScheduleConfiguration
@@ -21,12 +21,12 @@ import java.util.concurrent.ScheduledExecutorService;
 public class ScheduleConfiguration implements SchedulingConfigurer {
 
     @Override
-    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-        taskRegistrar.setScheduler(taskExecutor());
+    public void configureTasks(ScheduledTaskRegistrar scheduledTaskRegistrar) {
+        scheduledTaskRegistrar.setScheduler(Executors.newScheduledThreadPool(100));
     }
 
     @Bean
-    public ScheduledExecutorService taskExecutor() {
-        return Executors.newScheduledThreadPool(100);
+    public ExecutorService taskExecutor() {
+        return Executors.newFixedThreadPool(100);
     }
 }
