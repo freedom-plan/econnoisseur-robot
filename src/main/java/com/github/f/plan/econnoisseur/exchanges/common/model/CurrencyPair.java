@@ -13,6 +13,7 @@ public enum CurrencyPair {
     BBN_ETH(BBN, ETH),
     IOST_ETH(IOST, ETH),
     CARD_BTC(CARD, BTC),
+    CARD_ETH(CARD, ETH),
     CET_BTC(CET, BTC),
     ;
 

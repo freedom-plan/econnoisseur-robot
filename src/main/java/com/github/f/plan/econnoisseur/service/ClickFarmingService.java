@@ -33,13 +33,13 @@ public class ClickFarmingService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClickFarmingService.class);
     @Autowired
     @Qualifier("coinexApi")
-    private CoinexApi api;
+    private IApi api;
     @Autowired(required = false)
     private DingTalkService dingTalkService;
     @Autowired
     private ScheduledExecutorService taskExecutor;
 
-    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.CARD_BTC;
+    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.CARD_ETH;
 
     // 平台币
     private static final Currency PLATFORM_CURRENCY = Currency.CET;
@@ -57,7 +57,7 @@ public class ClickFarmingService {
     private static BigDecimal LAST_TRADE_PRICE = null;
     private static MiningInfo MINING_INFO = null;
 
-    @Scheduled(fixedDelayString="1000")
+    @Scheduled(fixedDelayString="3000")
     public void run() throws InterruptedException, ExecutionException {
         String priorityId = null;
         String secondId = null;
@@ -109,9 +109,8 @@ public class ClickFarmingService {
                 return;
             }
 
-            if (OrderStatus.FILLED == priorityStatus || OrderStatus.FILLED == secondStatus) {
+            if (api instanceof CoinexApi) {
                 LOGGER.info("默认下单完成\n\n");
-
                 return;
             }
 
@@ -234,7 +233,7 @@ public class ClickFarmingService {
             if (null != preTradeInfo.getPrice()) {
                 LAST_TRADE_PRICE = preTradeInfo.getPrice();
             }
-        } else if (null == LAST_TRADE_PRICE) {
+        } else if (null != LAST_TRADE_PRICE) {
             waitOrExitAndNotify(60000D , false, "没有足够的币种交易", "#### 没有足够的币种交易\n\n"
                     + " * " + pair.getBase() + " : ** " + preTradeInfo.getBaseAmount() + " **\n"
                     + " * " + pair.getCounter() + " : ** " + preTradeInfo.getCounterAmount() + " **");
@@ -244,8 +243,28 @@ public class ClickFarmingService {
     }
 
     // 最大挖矿折合交易币种数量
-    private boolean checkMining(BigDecimal preAmount, BigDecimal minAmount) {
+    private boolean checkMining(BigDecimal preAmount, BigDecimal minAmount) throws InterruptedException {
         boolean result = true;
+        if (MINING) {
+            if (null == MINING_INFO) {
+                updateMining();
+            }
+
+            LOGGER.info("当前小时可挖矿：{}，已挖矿：{}, 可交易数量：{}", MINING_INFO.getDifficulty(), MINING_INFO.getPrediction(), MINING_INFO.getAmount());
+
+            if (MINING_INFO.isOverrun(preAmount)) {
+                result = false;
+            } else {
+                if (preAmount.compareTo(minAmount) > 0) {
+                    MINING_INFO.subtract(preAmount);
+                }
+            }
+        }
+        return result;
+    }
+
+    @Scheduled(cron = "0 3/5 * * * ?")
+    public synchronized void updateMining() {
         if (MINING) {
             MiningDifficulty miningDifficulty = ((CoinexApi) api).miningDifficulty();
             if (check(miningDifficulty)) {
@@ -255,19 +274,8 @@ public class ClickFarmingService {
                 } else {
                     MINING_INFO.reset(miningDifficulty);
                 }
-                LOGGER.info("当前小时可挖矿：{}，已挖矿：{}, 可交易数量：{}", MINING_INFO.getDifficulty(), MINING_INFO.getPrediction(), MINING_INFO.getAmount());
-
-                if (MINING_INFO.isOverrun(preAmount)) {
-                    result = false;
-                } else {
-                    if (preAmount.compareTo(minAmount) > 0) {
-                        MINING_INFO.subtract(preAmount);
-                        LOGGER.info("减去当前准备交易数量");
-                    }
-                }
             }
         }
-        return result;
     }
 
     /**

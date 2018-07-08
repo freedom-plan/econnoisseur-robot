@@ -1,11 +1,11 @@
 package com.github.f.plan.econnoisseur.dto;
 
 import com.github.f.plan.econnoisseur.exchanges.common.dto.MiningDifficulty;
-import com.github.f.plan.econnoisseur.service.ClickFarmingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 /**
  * MiningInfo
@@ -37,7 +37,9 @@ public class MiningInfo {
             this.difficulty = miningDifficulty.getDifficulty();
             this.prediction = miningDifficulty.getPrediction();
             this.updateTime = miningDifficulty.getUpdateTime();
-            this.amount = this.getDifficulty().subtract(this.getPrediction()).multiply(this.getRate());
+            this.amount = this.getDifficulty().subtract(this.getPrediction()).multiply(this.getRate())
+                    .add(this.amount)
+                    .divide(new BigDecimal(2), RoundingMode.HALF_DOWN);
             LOGGER.info("已更新 Mining Info，amount: {}", this.amount);
         }
         return this;
