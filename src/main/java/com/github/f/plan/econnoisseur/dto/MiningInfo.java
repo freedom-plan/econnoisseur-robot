@@ -36,7 +36,6 @@ public class MiningInfo {
         if (miningDifficulty.getUpdateTime() > this.getUpdateTime()) {
             this.difficulty = miningDifficulty.getDifficulty();
             this.prediction = miningDifficulty.getPrediction();
-            this.updateTime = miningDifficulty.getUpdateTime();
 
             if (this.getUpdateTime() / 3600 == miningDifficulty.getUpdateTime() / 3600) {
                 this.amount = this.getDifficulty().subtract(this.getPrediction()).subtract(BigDecimal.TEN).multiply(this.getRate())
@@ -47,6 +46,7 @@ public class MiningInfo {
                 this.amount = this.getDifficulty().subtract(this.getPrediction()).subtract(BigDecimal.TEN).multiply(this.getRate());
                 LOGGER.info("已重置 Mining Info，amount: {}, 更新时间：{}", this.amount, this.updateTime);
             }
+            this.updateTime = miningDifficulty.getUpdateTime();
         }
         return this;
     }
