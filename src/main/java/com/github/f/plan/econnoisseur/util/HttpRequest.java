@@ -115,8 +115,16 @@ public class HttpRequest {
             CloseableHttpClient client = proxy ? getProxyClient() : getClient();
             httpResponse = client.execute(request);
             sw.stop();
+            LOGGER.debug("请求耗时：{}秒", sw.getTotalTimeSeconds());
             HttpEntity entity = httpResponse.getEntity();
-            response = EntityUtils.toString(entity, ContentType.get(entity).getCharset());
+
+            Charset charset = DEFAULT_CHARSET;
+            ContentType contentType = ContentType.get(entity);
+            if (null != contentType && null != contentType.getCharset()) {
+                charset = contentType.getCharset();
+            }
+
+            response = EntityUtils.toString(entity, charset);
             EntityUtils.consume(entity);
         } catch (IOException e) {
             sw.stop();
@@ -130,6 +138,7 @@ public class HttpRequest {
                 }
             }
         }
+//        LOGGER.info(response);
         return response;
     }
 

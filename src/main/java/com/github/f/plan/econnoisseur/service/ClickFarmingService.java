@@ -1,6 +1,8 @@
 package com.github.f.plan.econnoisseur.service;
 
+import com.github.f.plan.econnoisseur.dto.MiningInfo;
 import com.github.f.plan.econnoisseur.dto.PreTradeInfo;
+import com.github.f.plan.econnoisseur.exchanges.coinex.service.CoinexApi;
 import com.github.f.plan.econnoisseur.exchanges.common.dto.*;
 import com.github.f.plan.econnoisseur.exchanges.common.iface.IApi;
 import com.github.f.plan.econnoisseur.exchanges.common.model.*;
@@ -30,17 +32,20 @@ import java.util.concurrent.ScheduledExecutorService;
 public class ClickFarmingService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClickFarmingService.class);
     @Autowired
-    @Qualifier("gateIoApi")
-    private IApi api;
+    @Qualifier("coinexApi")
+    private CoinexApi api;
     @Autowired(required = false)
     private DingTalkService dingTalkService;
     @Autowired
     private ScheduledExecutorService taskExecutor;
 
-    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.IOST_ETH;
+    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.CARD_BTC;
 
     // 平台币
-    private static final Currency PLATFORM_CURRENCY = Currency.KK;
+    private static final Currency PLATFORM_CURRENCY = Currency.CET;
+    // 开启挖矿
+    private static final Boolean MINING = Boolean.TRUE;
+
     private static final BigDecimal MIN_PLATFORM_CURRENCY_AMOUNT = new BigDecimal("200");
     // 交易币
     private static final BigDecimal MAX_HOLD_AMOUNT = new BigDecimal("6000");
@@ -49,10 +54,10 @@ public class ClickFarmingService {
     private static final BigDecimal SAFE_WIDE = new BigDecimal("0.00000002");
 
     // 暂停指数
-    private static int SUSPEND_INDEX = 1;
     private static BigDecimal LAST_TRADE_PRICE = null;
+    private static MiningInfo MINING_INFO = null;
 
-    @Scheduled(fixedDelayString="3000")
+    @Scheduled(fixedDelayString="1000")
     public void run() throws InterruptedException, ExecutionException {
         String priorityId = null;
         String secondId = null;
@@ -61,6 +66,10 @@ public class ClickFarmingService {
 
         PreTradeInfo tradeInfo = this.getPreTradeInfo(this.api, CURRENT_CURRENCY_PAIR);
         BigDecimal price = tradeInfo.getPrice();
+
+        if (tradeInfo.isSuspend()) {
+            return;
+        }
 
         if (null != price) {
             BigDecimal amount = tradeInfo.getAmount();
@@ -83,20 +92,26 @@ public class ClickFarmingService {
                 secondStatus = secondOrder.getStatus();
             }
 
-            if ((null == priorityId || OrderStatus.FILLED == priorityStatus) && null != secondId) {
-                LOGGER.info(null == priorityId ? "{}单请求失败!" : "{}单被吞!", priority);
+            if (null == priorityId && null != secondId) {
+                LOGGER.info("{}单请求失败!", priority);
                 Order cancel = api.cancelOrder(CURRENT_CURRENCY_PAIR, secondId);
                 LOGGER.info("取消{}单 : {}\n\n", second, cancel.getCode());
                 return;
             }
-            if (null != priorityId && (null == secondId || OrderStatus.FILLED == secondStatus)) {
-                LOGGER.info(null == secondId ? "{}单请求失败!" : "{}单被吞!", second);
+            if (null != priorityId && null == secondId) {
+                LOGGER.info("{}单请求失败!", second);
                 Order cancel = api.cancelOrder(CURRENT_CURRENCY_PAIR, priorityId);
                 LOGGER.info("取消{}单 : {}\n\n", priority, cancel.getCode());
                 return;
             }
             if (null == priorityId && null == secondId) {
                 LOGGER.info("下单失败\n\n");
+                return;
+            }
+
+            if (OrderStatus.FILLED == priorityStatus || OrderStatus.FILLED == secondStatus) {
+                LOGGER.info("默认下单完成\n\n");
+
                 return;
             }
 
@@ -124,7 +139,7 @@ public class ClickFarmingService {
                     break;
                 }
                 count++;
-            } while (count < 10);
+            } while (count < 2);
 
             if (OrderStatus.FILLED != priorityStatus || OrderStatus.FILLED != secondStatus) {
                 if (null != dingTalkService) {
@@ -146,7 +161,7 @@ public class ClickFarmingService {
      * @param pair
      * @return
      */
-    private PreTradeInfo getPreTradeInfo(IApi api, CurrencyPair pair) {
+    private PreTradeInfo getPreTradeInfo(IApi api, CurrencyPair pair) throws InterruptedException {
         PreTradeInfo preTradeInfo = new PreTradeInfo()
                 .setPriority(OrderOperation.SELL)
                 .setSecond(OrderOperation.BUY);
@@ -160,62 +175,99 @@ public class ClickFarmingService {
         if (null != LAST_TRADE_PRICE) {
             Balances balances = api.balances();
             if (check(balances)) {
-                Balance platform = balances.getBalance(PLATFORM_CURRENCY);
-                if (null == platform || platform.getAvailable().compareTo(MIN_PLATFORM_CURRENCY_AMOUNT) < 0) {
-                     waitOrExitAndNotify(60000D , false, "没有足够的平台币", "#### 没有足够的平台币\n\n"
-                            + " * " + PLATFORM_CURRENCY + " : ** " + (null != platform ? platform.getAvailable() : 0) + " **");
-                } else {
-                    Balance base = balances.getBalance(pair.getBase());
-                    BigDecimal baseAmount = base.getAvailable();
-                    LOGGER.info("账号 {} 状态, available: {}, frozen: {}", pair.getBase(), base.getAvailable(), base.getFrozen().doubleValue());
-
-                    Balance counter = balances.getBalance(pair.getCounter());
-                    BigDecimal counterAmount = counter.getAvailable();
-                    LOGGER.info("账号 {} 状态, available: {}, frozen: {}", pair.getCounter(), counter.getAvailable(), counter.getFrozen().doubleValue());
-
-                    if (null != baseAmount && null != counterAmount) {
-                        BigDecimal buyVol = counterAmount.divide(LAST_TRADE_PRICE, RoundingMode.HALF_UP);
-
-                        // 计算交易量
-                        BigDecimal amount = baseAmount.min(buyVol);
-                        LOGGER.info("本次能执行最大刷单数量: {}", amount);
-
-                        if (amount.compareTo(MIN_AMOUNT) <= 0) {
-                            waitOrExitAndNotify(60000D , false, "没有足够的币种交易", "#### 没有足够的币种交易\n\n"
-                                    + " * " + pair.getBase() + " : ** " + baseAmount + " **\n"
-                                    + " * " + pair.getCounter() + " : ** " + counterAmount + " **");
-                        } else {
-                            amount = amount.multiply(new BigDecimal(0.8 - new Random().nextDouble() * 0.15))
-                                    .setScale(0, BigDecimal.ROUND_DOWN)
-                                    .max(MIN_AMOUNT);
-                            LOGGER.info("本次执行的刷单数量: {}", amount);
-                            preTradeInfo.setAmount(amount);
-
-                            // 评估操作顺序
-                            BigDecimal doubleBase = baseAmount.multiply(new BigDecimal(2));
-                            if (doubleBase.compareTo(MAX_HOLD_AMOUNT) < 0 && doubleBase.compareTo(buyVol) < 0) {
-                                LOGGER.info("交换交易顺序，{} <----> {}", OrderOperation.BUY, OrderOperation.SELL);
-                                preTradeInfo.setPriority(OrderOperation.BUY)
-                                        .setSecond(OrderOperation.SELL);
-                            }
-                        }
+                boolean flag = true;
+                if (!MINING) {
+                    Balance platform = balances.getBalance(PLATFORM_CURRENCY);
+                    if (null == platform || platform.getAvailable().compareTo(MIN_PLATFORM_CURRENCY_AMOUNT) < 0) {
+                        flag = false;
+                        waitOrExitAndNotify(60000D , false, "没有足够的平台币", "#### 没有足够的平台币\n\n"
+                                + " * " + PLATFORM_CURRENCY + " : ** " + (null != platform ? platform.getAvailable() : 0) + " **");
                     }
+                }
+
+                 if (flag) {
+                    Balance base = balances.getBalance(pair.getBase());
+                    Balance counter = balances.getBalance(pair.getCounter());
+                    BigDecimal baseAmount = base.getAvailable();
+                    BigDecimal counterAmount = counter.getAvailable();
+                    LOGGER.info("账号 {} 状态, available: {}, frozen: {}", pair.getBase(), base.getAvailable(), base.getFrozen().doubleValue());
+                    LOGGER.info("账号 {} 状态, available: {}, frozen: {}", pair.getCounter(), counter.getAvailable(), counter.getFrozen().doubleValue());
+                    preTradeInfo.setBaseAmount(baseAmount).setCounterAmount(counterAmount);
+
+                    BigDecimal buyVol = counterAmount.divide(LAST_TRADE_PRICE, RoundingMode.HALF_UP);
+                    // 计算交易量
+                    BigDecimal amount = baseAmount.min(buyVol);
+                    LOGGER.info("本次能执行最大刷单数量: {}", amount);
+
+                    if (!this.checkMining(amount, MIN_AMOUNT)) {
+                        preTradeInfo.setSuspend(true);
+                    } else if (amount.compareTo(MIN_AMOUNT) > 0) {
+                        amount = amount.multiply(new BigDecimal(0.8 - new Random().nextDouble() * 0.15))
+                                .setScale(0, BigDecimal.ROUND_DOWN)
+                                .max(MIN_AMOUNT);
+                        LOGGER.info("本次执行的刷单数量: {}", amount);
+                        preTradeInfo.setAmount(amount);
+
+                        // 评估操作顺序
+                        BigDecimal doubleBase = baseAmount.multiply(new BigDecimal(2));
+                        if (doubleBase.compareTo(MAX_HOLD_AMOUNT) < 0 && doubleBase.compareTo(buyVol) < 0) {
+                            LOGGER.info("交换交易顺序，{} <----> {}", OrderOperation.BUY, OrderOperation.SELL);
+                            preTradeInfo.setPriority(OrderOperation.BUY)
+                                    .setSecond(OrderOperation.SELL);
+                        }
+                    } else {
+                        // 自动购买
+                    }
+
                 }
 
             }
         }
 
         // 评估价格
-        if (null != preTradeInfo.getAmount()) {
+        if (preTradeInfo.isSuspend()) {
+            LOGGER.info("——————————> 休息60s\n\n");
+            Thread.sleep(60000);
+        } if (null != preTradeInfo.getAmount()) {
             Ticker ticker = api.ticker(pair);
             preTradeInfo.setPrice(this.getPrice(ticker, preTradeInfo.getPriority()));
             if (null != preTradeInfo.getPrice()) {
-                SUSPEND_INDEX = 1;
                 LAST_TRADE_PRICE = preTradeInfo.getPrice();
             }
+        } else if (null == LAST_TRADE_PRICE) {
+            waitOrExitAndNotify(60000D , false, "没有足够的币种交易", "#### 没有足够的币种交易\n\n"
+                    + " * " + pair.getBase() + " : ** " + preTradeInfo.getBaseAmount() + " **\n"
+                    + " * " + pair.getCounter() + " : ** " + preTradeInfo.getCounterAmount() + " **");
         }
 
         return preTradeInfo;
+    }
+
+    // 最大挖矿折合交易币种数量
+    private boolean checkMining(BigDecimal preAmount, BigDecimal minAmount) {
+        boolean result = true;
+        if (MINING) {
+            MiningDifficulty miningDifficulty = ((CoinexApi) api).miningDifficulty();
+            if (check(miningDifficulty)) {
+                if (null == MINING_INFO) {
+                    // 除2是有买卖两次交易
+                    MINING_INFO = new MiningInfo(miningDifficulty, new BigDecimal(1000 * 12 / 2));
+                } else {
+                    MINING_INFO.reset(miningDifficulty);
+                }
+                LOGGER.info("当前小时可挖矿：{}，已挖矿：{}, 可交易数量：{}", MINING_INFO.getDifficulty(), MINING_INFO.getPrediction(), MINING_INFO.getAmount());
+
+                if (MINING_INFO.isOverrun(preAmount)) {
+                    result = false;
+                } else {
+                    if (preAmount.compareTo(minAmount) > 0) {
+                        MINING_INFO.subtract(preAmount);
+                        LOGGER.info("减去当前准备交易数量");
+                    }
+                }
+            }
+        }
+        return result;
     }
 
     /**

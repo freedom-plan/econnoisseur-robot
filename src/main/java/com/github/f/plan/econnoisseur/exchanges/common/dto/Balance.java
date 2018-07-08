@@ -16,13 +16,7 @@ public class Balance {
 
     public BigDecimal getTotal() {
         if (null == total) {
-            total = new BigDecimal(0);
-            if (null != available) {
-                total = total.add(available);
-            }
-            if (null != frozen) {
-                total = total.add(frozen);
-            }
+            total = this.getAvailable().add(this.getFrozen());
         }
         return total;
     }
@@ -33,7 +27,7 @@ public class Balance {
     }
 
     public BigDecimal getAvailable() {
-        return available;
+        return null == available ? BigDecimal.ZERO : available;
     }
 
     public Balance setAvailable(BigDecimal available) {
@@ -42,7 +36,7 @@ public class Balance {
     }
 
     public BigDecimal getFrozen() {
-        return frozen;
+        return null == frozen ? BigDecimal.ZERO : frozen;
     }
 
     public Balance setFrozen(BigDecimal frozen) {

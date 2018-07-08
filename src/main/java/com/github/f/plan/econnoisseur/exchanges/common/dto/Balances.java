@@ -20,7 +20,11 @@ public class Balances extends BaseResp {
     }
 
     public Balance getBalance(Currency currency) {
-        return this.balances.get(currency);
+        Balance balance = this.balances.get(currency);
+        if (null == balance) {
+            balance = new Balance();
+        }
+        return balance;
     }
 
     public Balance setBalance(Currency currency, Balance balance) {

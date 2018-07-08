@@ -17,6 +17,8 @@ public enum Currency {
     KK,
     NANO,
     IOST,
+    CET,
+    CARD,
     ;
 
     @Override

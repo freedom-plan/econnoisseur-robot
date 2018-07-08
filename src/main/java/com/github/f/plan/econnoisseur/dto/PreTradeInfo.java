@@ -16,6 +16,11 @@ public class PreTradeInfo {
     private BigDecimal price;
     private BigDecimal amount;
 
+    private BigDecimal baseAmount;
+    private BigDecimal counterAmount;
+
+    private boolean suspend = false;
+
     private OrderOperation priority;
     private OrderOperation second;
 
@@ -34,6 +39,33 @@ public class PreTradeInfo {
 
     public PreTradeInfo setAmount(BigDecimal amount) {
         this.amount = amount;
+        return this;
+    }
+
+    public BigDecimal getBaseAmount() {
+        return baseAmount;
+    }
+
+    public PreTradeInfo setBaseAmount(BigDecimal baseAmount) {
+        this.baseAmount = baseAmount;
+        return this;
+    }
+
+    public BigDecimal getCounterAmount() {
+        return counterAmount;
+    }
+
+    public PreTradeInfo setCounterAmount(BigDecimal counterAmount) {
+        this.counterAmount = counterAmount;
+        return this;
+    }
+
+    public boolean isSuspend() {
+        return suspend;
+    }
+
+    public PreTradeInfo setSuspend(boolean suspend) {
+        this.suspend = suspend;
         return this;
     }
 

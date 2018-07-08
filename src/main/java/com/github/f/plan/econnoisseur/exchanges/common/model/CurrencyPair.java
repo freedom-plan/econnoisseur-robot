@@ -11,7 +11,9 @@ import static com.github.f.plan.econnoisseur.exchanges.common.model.Currency.*;
  */
 public enum CurrencyPair {
     BBN_ETH(BBN, ETH),
-    IOST_ETH(IOST, ETH)
+    IOST_ETH(IOST, ETH),
+    CARD_BTC(CARD, BTC),
+    CET_BTC(CET, BTC),
     ;
 
     private Currency base;

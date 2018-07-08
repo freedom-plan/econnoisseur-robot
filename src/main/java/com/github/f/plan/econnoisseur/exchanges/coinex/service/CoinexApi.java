@@ -74,10 +74,8 @@ public class CoinexApi implements IApi {
             balances.setCode(Code.OK);
             dto.getData().forEach((key, value) -> {
                 Currency currency = Currency.get(key);
-                if (null == currency) {
-                    LOGGER.info("未找到{}对应的枚举", key);
-                } else {
-                    BigDecimal total = value.getAvailable().add(value.getFrozen());
+                BigDecimal total = value.getAvailable().add(value.getFrozen());
+                if (null != currency && total.compareTo(BigDecimal.ZERO) > 0) {
                     Balance balance = new Balance()
                             .setAvailable(value.getAvailable())
                             .setFrozen(value.getFrozen())
@@ -145,11 +143,25 @@ public class CoinexApi implements IApi {
         return order(CoinexApiPath.CANCEL_ORDER_PATH, pair, orderId);
     }
 
+    public MiningDifficulty miningDifficulty() {
+        MiningDifficulty miningDifficulty = new MiningDifficulty(Code.SERVER);
+        String response = doRequest(CoinexApiPath.MINING_DIFFICULTY_PATH, null);
+        ResponseDto<MiningDifficultyDto> dto = JacksonUtil.toObject(response, new TypeReference<ResponseDto<MiningDifficultyDto>>(){});
+        if (checkResponse(dto)) {
+            MiningDifficultyDto result = dto.getData();
+            miningDifficulty.setDifficulty(result.getDifficulty())
+                    .setPrediction(result.getPrediction())
+                    .setUpdateTime(result.getUpdateTime())
+                    .setCode(Code.OK);
+        }
+        return miningDifficulty;
+    }
+
     public Order order(CoinexApiPath apiPath, CurrencyPair pair, String orderId) {
         Order order = null;
         HashMap<String, Object> param = new HashMap<>();
         param.put("market", Market.valueOf(pair));
-        param.put("id", Long.valueOf(orderId));
+        param.put("id", orderId);
         String response = doRequest(apiPath, param);
         ResponseDto<OrderDto> dto = JacksonUtil.toObject(response, new TypeReference<ResponseDto<OrderDto>>(){});
         if (checkResponse(dto)) {
@@ -235,10 +247,14 @@ public class CoinexApi implements IApi {
         if (params == null) {
             params = new HashMap<>();
         }
-        params.put("access_id", this.accessId);
-        params.put("tonce", System.currentTimeMillis());
 
-        String authorization = SignUtil.buildMysignV1(params, this.secretKey);
+        String authorization = null;
+        if (apiPath.isAuth()) {
+            params.put("access_id", this.accessId);
+            params.put("tonce", System.currentTimeMillis());
+
+            authorization = SignUtil.buildMysignV1(params, this.secretKey);
+        }
         return this.request(urlPrefix, apiPath, params, authorization);
     }
 
