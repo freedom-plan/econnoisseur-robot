@@ -245,9 +245,7 @@ public class ClickFarmingService {
     private boolean checkMining(BigDecimal preAmount, BigDecimal minAmount) {
         boolean result = true;
         if (MINING) {
-            if (null == MINING_INFO) {
-                updateMining();
-            }
+            updateMining();
 
             LOGGER.info("当前小时可挖矿：{}，已挖矿：{}, 可交易数量：{}", MINING_INFO.getDifficulty(), MINING_INFO.getPrediction(), MINING_INFO.getAmount());
 
@@ -262,7 +260,6 @@ public class ClickFarmingService {
         return result;
     }
 
-    @Scheduled(cron = "0 3/5 * * * ?")
     public synchronized void updateMining() {
         if (MINING) {
             MiningDifficulty miningDifficulty = ((CoinexApi) api).miningDifficulty();
