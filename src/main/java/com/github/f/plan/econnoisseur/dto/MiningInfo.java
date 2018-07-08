@@ -37,10 +37,16 @@ public class MiningInfo {
             this.difficulty = miningDifficulty.getDifficulty();
             this.prediction = miningDifficulty.getPrediction();
             this.updateTime = miningDifficulty.getUpdateTime();
-            this.amount = this.getDifficulty().subtract(this.getPrediction()).subtract(BigDecimal.TEN).multiply(this.getRate())
-                    .add(this.amount)
-                    .divide(new BigDecimal(2), RoundingMode.HALF_DOWN);
-            LOGGER.info("已更新 Mining Info，amount: {}", this.amount);
+
+            if (this.getUpdateTime() / 3600 == miningDifficulty.getUpdateTime() / 3600) {
+                this.amount = this.getDifficulty().subtract(this.getPrediction()).subtract(BigDecimal.TEN).multiply(this.getRate())
+                        .add(this.amount)
+                        .divide(new BigDecimal(2), RoundingMode.HALF_DOWN);
+                LOGGER.info("已更新 Mining Info，amount: {}", this.amount);
+            } else {
+                this.amount = this.getDifficulty().subtract(this.getPrediction()).subtract(BigDecimal.TEN).multiply(this.getRate());
+                LOGGER.info("已重置 Mining Info，amount: {}", this.amount);
+            }
         }
         return this;
     }
