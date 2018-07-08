@@ -42,10 +42,10 @@ public class MiningInfo {
                 this.amount = this.getDifficulty().subtract(this.getPrediction()).subtract(BigDecimal.TEN).multiply(this.getRate())
                         .add(this.amount)
                         .divide(new BigDecimal(2), RoundingMode.HALF_DOWN);
-                LOGGER.info("已更新 Mining Info，amount: {}", this.amount);
+                LOGGER.info("已更新 Mining Info，amount: {}, 更新时间：{}", this.amount, this.updateTime);
             } else {
                 this.amount = this.getDifficulty().subtract(this.getPrediction()).subtract(BigDecimal.TEN).multiply(this.getRate());
-                LOGGER.info("已重置 Mining Info，amount: {}", this.amount);
+                LOGGER.info("已重置 Mining Info，amount: {}, 更新时间：{}", this.amount, this.updateTime);
             }
         }
         return this;
