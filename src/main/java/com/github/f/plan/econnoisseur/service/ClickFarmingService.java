@@ -60,6 +60,8 @@ public class ClickFarmingService {
 
     @Scheduled(fixedDelayString="3000")
     public void run() throws InterruptedException, ExecutionException {
+        LOGGER.info("开始执行");
+
         String priorityId = null;
         String secondId = null;
         OrderStatus priorityStatus = null;

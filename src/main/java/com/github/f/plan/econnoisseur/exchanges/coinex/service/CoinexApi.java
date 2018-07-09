@@ -22,6 +22,7 @@ import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StopWatch;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -244,6 +245,8 @@ public class CoinexApi implements IApi {
     }
 
     private String doRequest(CoinexApiPath apiPath, Map<String, Object> params) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
         if (params == null) {
             params = new HashMap<>();
         }
@@ -255,7 +258,10 @@ public class CoinexApi implements IApi {
 
             authorization = SignUtil.buildMysignV1(params, this.secretKey);
         }
-        return this.request(urlPrefix, apiPath, params, authorization);
+        String response = this.request(urlPrefix, apiPath, params, authorization);
+        stopWatch.stop();
+        LOGGER.info("请求exchange API: {}, 耗时：{} s", apiPath.name(), stopWatch.getTotalTimeSeconds());
+        return response;
     }
 
     private String request(String urlPrefix, CoinexApiPath apiPath, Map<String, Object> params, String authorization) {
