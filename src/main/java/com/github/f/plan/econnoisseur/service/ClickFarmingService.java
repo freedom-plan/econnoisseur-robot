@@ -58,7 +58,7 @@ public class ClickFarmingService {
     private static BigDecimal LAST_TRADE_PRICE = null;
     private static MiningInfo MINING_INFO = null;
 
-    @Scheduled(fixedDelayString="3000")
+    @Scheduled(fixedDelayString="6000")
     public void run() throws InterruptedException, ExecutionException {
         LOGGER.info("开始执行");
 
@@ -223,6 +223,9 @@ public class ClickFarmingService {
 
                 }
 
+            } else {
+                LOGGER.info("超API的频率休息60s\n\n");
+                Thread.sleep(60000);
             }
         }
 
@@ -248,7 +251,9 @@ public class ClickFarmingService {
     private boolean checkMining(BigDecimal preAmount, BigDecimal minAmount) {
         boolean result = true;
         if (MINING) {
-            updateMining();
+            if (null == MINING_INFO) {
+                updateMining();
+            }
 
             LOGGER.info("当前小时可挖矿：{}，已挖矿：{}, 可交易数量：{}", MINING_INFO.getDifficulty(), MINING_INFO.getPrediction(), MINING_INFO.getAmount());
 
@@ -263,6 +268,7 @@ public class ClickFarmingService {
         return result;
     }
 
+    @Scheduled(cron = "09/20 * * * * ?")
     public synchronized void updateMining() {
         if (MINING) {
             MiningDifficulty miningDifficulty = ((CoinexApi) api).miningDifficulty();
