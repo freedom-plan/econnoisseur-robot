@@ -269,7 +269,7 @@ public class ClickFarmingService {
             if (check(miningDifficulty)) {
                 if (null == MINING_INFO) {
                     // 除2是有买卖两次交易
-                    MINING_INFO = new MiningInfo(miningDifficulty, new BigDecimal(1000 * 12 / 2));
+                    MINING_INFO = new MiningInfo(miningDifficulty, new BigDecimal(1000 * 10 / 2));
                 } else {
                     MINING_INFO.reset(miningDifficulty);
                 }
