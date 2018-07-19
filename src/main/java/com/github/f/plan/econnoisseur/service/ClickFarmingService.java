@@ -10,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.core.task.TaskExecutor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -40,12 +39,12 @@ public class ClickFarmingService {
     @Autowired
     private ExecutorService taskExecutor;
 
-    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.CARD_ETH;
+    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.OLT_ETH;
 
     // 平台币
     private static final Currency PLATFORM_CURRENCY = Currency.CET;
     // 开启挖矿
-    private static final Boolean MINING = Boolean.TRUE;
+    private static final Boolean MINING = Boolean.FALSE;
 
     private static final BigDecimal MIN_PLATFORM_CURRENCY_AMOUNT = new BigDecimal("200");
     // 交易币

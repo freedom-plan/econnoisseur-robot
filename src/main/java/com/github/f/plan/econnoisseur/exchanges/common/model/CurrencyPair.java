@@ -14,6 +14,7 @@ public enum CurrencyPair {
     IOST_ETH(IOST, ETH),
     CARD_BTC(CARD, BTC),
     CARD_ETH(CARD, ETH),
+    OLT_ETH(OLT, ETH),
     CET_BTC(CET, BTC),
     ;
 

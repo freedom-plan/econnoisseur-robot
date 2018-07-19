@@ -19,6 +19,7 @@ public enum Currency {
     IOST,
     CET,
     CARD,
+    OLT,
     ;
 
     @Override
