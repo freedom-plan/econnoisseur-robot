@@ -20,6 +20,7 @@ public enum Currency {
     CET,
     CARD,
     OLT,
+    BCH
     ;
 
     @Override
