@@ -39,7 +39,7 @@ public class ClickFarmingService {
     @Autowired
     private ExecutorService taskExecutor;
 
-    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.OLT_BCH;
+    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.OLT_USDT;
 
     // 平台币
     private static final Currency PLATFORM_CURRENCY = Currency.CET;
