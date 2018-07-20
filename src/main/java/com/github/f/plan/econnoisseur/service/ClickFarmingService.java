@@ -291,11 +291,19 @@ public class ClickFarmingService {
                 Ticker ticker = api.ticker(CurrencyPair.get(PLATFORM_CURRENCY, CURRENT_CURRENCY_PAIR.getCounter()));
                 if (check(ticker)) {
                     BigDecimal platform = ticker.getLast();
-                    rate = platform.multiply(new BigDecimal(1000 / 2 * 0.95)).divide(LAST_TRADE_PRICE, RoundingMode.HALF_DOWN);
-                    if (null == MINING_INFO) {
-                        MINING_INFO = new MiningInfo(miningDifficulty, rate);
-                    } else {
-                        MINING_INFO.reset(miningDifficulty, rate);
+
+                    if (null == LAST_TRADE_PRICE) {
+                        Ticker price = api.ticker(CURRENT_CURRENCY_PAIR);
+                        LAST_TRADE_PRICE = price.getLast();
+                    }
+
+                    if (null != LAST_TRADE_PRICE) {
+                        rate = platform.multiply(new BigDecimal(1000 / 2 * 0.95)).divide(LAST_TRADE_PRICE, RoundingMode.HALF_DOWN);
+                        if (null == MINING_INFO) {
+                            MINING_INFO = new MiningInfo(miningDifficulty, rate);
+                        } else {
+                            MINING_INFO.reset(miningDifficulty, rate);
+                        }
                     }
                 }
             }
