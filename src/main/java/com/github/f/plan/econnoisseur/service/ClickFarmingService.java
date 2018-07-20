@@ -273,7 +273,7 @@ public class ClickFarmingService {
             if (MINING_INFO.isOverrun(preAmount)) {
                 result = false;
             } else {
-                if (preAmount.compareTo(minAmount) > 0) {
+                if (preAmount.compareTo(minAmount) >= 0) {
                     MINING_INFO.subtract(preAmount);
                 }
             }
