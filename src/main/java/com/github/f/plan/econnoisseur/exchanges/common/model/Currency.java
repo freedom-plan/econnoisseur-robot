@@ -21,7 +21,8 @@ public enum Currency {
     CARD,
     OLT,
     BCH,
-    USDT
+    USDT,
+    LFT
     ;
 
     @Override

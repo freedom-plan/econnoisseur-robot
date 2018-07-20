@@ -5,7 +5,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 /**
  * MiningInfo
@@ -29,24 +28,19 @@ public class MiningInfo {
         this.prediction = miningDifficulty.getPrediction();
         this.updateTime = miningDifficulty.getUpdateTime();
         this.rate = rate;
-        this.amount = this.getDifficulty().subtract(this.getPrediction()).subtract(BigDecimal.TEN).multiply(this.getRate());
+        this.amount = this.getDifficulty().subtract(this.getPrediction()).multiply(this.getRate());
     }
 
-    public MiningInfo reset(MiningDifficulty miningDifficulty) {
+    public synchronized MiningInfo reset(MiningDifficulty miningDifficulty, BigDecimal rate) {
         if (miningDifficulty.getUpdateTime() > this.getUpdateTime()) {
             this.difficulty = miningDifficulty.getDifficulty();
             this.prediction = miningDifficulty.getPrediction();
+            this.rate = rate;
 
-            BigDecimal newAmount = this.getDifficulty().subtract(this.getPrediction()).subtract(BigDecimal.TEN).multiply(this.getRate());
             if (this.getUpdateTime() / 3600 == miningDifficulty.getUpdateTime() / 3600) {
-                if (newAmount.compareTo(this.amount) > 0) {
-                    newAmount = newAmount.add(this.amount)
-                            .divide(new BigDecimal(2), RoundingMode.HALF_DOWN);
-                }
-                this.amount = newAmount;
                 LOGGER.info("已更新 Mining Info，amount: {}, 更新时间：{}", this.amount, this.updateTime);
             } else {
-                this.amount = newAmount;
+                this.amount = this.getDifficulty().subtract(this.getPrediction()).multiply(this.getRate());
                 LOGGER.info("已重置 Mining Info，amount: {}, 更新时间：{}", this.amount, this.updateTime);
             }
             this.updateTime = miningDifficulty.getUpdateTime();

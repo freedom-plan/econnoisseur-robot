@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Calendar;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -39,17 +40,17 @@ public class ClickFarmingService {
     @Autowired
     private ExecutorService taskExecutor;
 
-    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.OLT_USDT;
+    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.LFT_BCH;
 
     // 平台币
     private static final Currency PLATFORM_CURRENCY = Currency.CET;
     // 开启挖矿
-    private static final Boolean MINING = Boolean.FALSE;
+    private static final Boolean MINING = Boolean.TRUE;
 
     private static final BigDecimal MIN_PLATFORM_CURRENCY_AMOUNT = new BigDecimal("200");
     // 交易币
     private static final BigDecimal MAX_HOLD_AMOUNT = new BigDecimal("6000");
-    private static final BigDecimal MIN_AMOUNT = new BigDecimal("200");
+    private static final BigDecimal MIN_AMOUNT = new BigDecimal("50");
 
     private static final BigDecimal SAFE_WIDE = new BigDecimal("0.00000002");
 
@@ -60,6 +61,18 @@ public class ClickFarmingService {
     @Scheduled(fixedDelayString="6000")
     public void run() throws InterruptedException, ExecutionException {
         LOGGER.info("开始执行");
+        if (MINING) {
+            if (Calendar.getInstance().get(Calendar.MINUTE) <= 35) {
+                LOGGER.info("未到挖矿时间点\n\n");
+                return;
+            }
+
+            if (null != MINING_INFO && MINING_INFO.isOverrun(MIN_AMOUNT)) {
+                LOGGER.info("当前小时可挖矿：{}，已挖矿：{}, 可交易数量：{}", MINING_INFO.getDifficulty(), MINING_INFO.getPrediction(), MINING_INFO.getAmount());
+                LOGGER.info("挖矿达到最大值\n\n");
+                return;
+            }
+        }
 
         String priorityId = null;
         String secondId = null;
@@ -201,8 +214,9 @@ public class ClickFarmingService {
                     LOGGER.info("本次能执行最大刷单数量: {}", amount);
 
                     if (amount.compareTo(MIN_AMOUNT) > 0) {
-                        amount = amount.multiply(new BigDecimal(0.8 - new Random().nextDouble() * 0.15))
-                                .setScale(0, BigDecimal.ROUND_DOWN)
+                        amount = amount.multiply(new BigDecimal(
+                                    MINING ? new Random().nextDouble() : (0.8 - new Random().nextDouble() * 0.15)
+                                )).setScale(0, BigDecimal.ROUND_DOWN)
                                 .max(MIN_AMOUNT);
                         LOGGER.info("本次执行的刷单数量: {}", amount);
                         preTradeInfo.setAmount(amount);
@@ -272,11 +286,17 @@ public class ClickFarmingService {
         if (MINING) {
             MiningDifficulty miningDifficulty = ((CoinexApi) api).miningDifficulty();
             if (check(miningDifficulty)) {
-                if (null == MINING_INFO) {
-                    // 除2是有买卖两次交易
-                    MINING_INFO = new MiningInfo(miningDifficulty, new BigDecimal(1000 * 10 / 2));
-                } else {
-                    MINING_INFO.reset(miningDifficulty);
+                // 除2是有买卖两次交易
+                BigDecimal rate = null;
+                Ticker ticker = api.ticker(CurrencyPair.get(PLATFORM_CURRENCY, CURRENT_CURRENCY_PAIR.getCounter()));
+                if (check(ticker)) {
+                    BigDecimal platform = ticker.getLast();
+                    rate = platform.multiply(new BigDecimal(1000 / 2 * 0.95)).divide(LAST_TRADE_PRICE, RoundingMode.HALF_DOWN);
+                    if (null == MINING_INFO) {
+                        MINING_INFO = new MiningInfo(miningDifficulty, rate);
+                    } else {
+                        MINING_INFO.reset(miningDifficulty, rate);
+                    }
                 }
             }
         }
@@ -351,6 +371,7 @@ public class ClickFarmingService {
         }
     }
 
+    @Deprecated
     public void status() {
         BigDecimal bigDecimal = new BigDecimal(0);
         Orders orders = api.finishedOrders(CURRENT_CURRENCY_PAIR);
@@ -362,6 +383,7 @@ public class ClickFarmingService {
         LOGGER.info("$$$$$ 获取交易总量状态, sum: {}\n\n", bigDecimal);
     }
 
+    @Deprecated
     public void op() throws InterruptedException {
         BigDecimal amount = new BigDecimal(1500);
         OrderOperation operation = OrderOperation.SELL;

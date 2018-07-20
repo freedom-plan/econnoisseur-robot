@@ -18,6 +18,8 @@ public enum CurrencyPair {
     CET_BTC(CET, BTC),
     OLT_BCH(OLT, BCH),
     OLT_USDT(OLT, USDT),
+    LFT_BCH(LFT, BCH),
+    CET_BCH(CET, BCH),
     ;
 
     private Currency base;
@@ -34,5 +36,9 @@ public enum CurrencyPair {
 
     public Currency getCounter() {
         return counter;
+    }
+
+    public static CurrencyPair get(Currency base, Currency counter) {
+        return CurrencyPair.valueOf(base.name() + "_" + counter.name());
     }
 }
