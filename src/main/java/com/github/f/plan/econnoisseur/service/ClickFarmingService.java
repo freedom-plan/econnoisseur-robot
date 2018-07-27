@@ -45,7 +45,7 @@ public class ClickFarmingService {
     // 平台币
     private static final Currency PLATFORM_CURRENCY = Currency.CET;
     // 开启挖矿
-    private static final Boolean MINING = Boolean.TRUE;
+    private static final Boolean MINING = Boolean.FALSE;
 
     private static final BigDecimal MIN_PLATFORM_CURRENCY_AMOUNT = new BigDecimal("200");
     // 交易币

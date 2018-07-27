@@ -20,6 +20,9 @@ public enum CurrencyPair {
     OLT_USDT(OLT, USDT),
     LFT_BCH(LFT, BCH),
     CET_BCH(CET, BCH),
+    TCT_ETH(TCT, ETH),
+    TCT_BCH(TCT, BCH),
+    TCT_BTC(TCT, BTC),
     ;
 
     private Currency base;
