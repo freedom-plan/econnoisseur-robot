@@ -1,4 +1,4 @@
-package com.github.f.plan.econnoisseur.exchanges.kucoin.configueation;
+package com.github.f.plan.econnoisseur.exchanges.kucoin.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

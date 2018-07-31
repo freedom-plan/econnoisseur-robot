@@ -1,6 +1,6 @@
-package com.github.f.plan.econnoisseur.exchanges.kucoin.configueation;
+package com.github.f.plan.econnoisseur.exchanges.kucoin.configuration;
 
-import com.github.f.plan.econnoisseur.exchanges.kkcoin.service.KkcoinApi;
+import com.github.f.plan.econnoisseur.exchanges.kucoin.service.KuCoinApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -22,7 +22,7 @@ public class KuCoinConfiguration {
     private KuCoinProperties kuCoinProperties;
 
     @Bean
-    public KkcoinApi kkcoinApi() throws Exception {
-        return new KkcoinApi(kuCoinProperties.getUrlPrefix(), kuCoinProperties.getApiKey(), kuCoinProperties.getSecretKey());
+    public KuCoinApi kuCoinApi() {
+        return new KuCoinApi(kuCoinProperties.getUrlPrefix(), kuCoinProperties.getApiKey(), kuCoinProperties.getSecretKey());
     }
 }
