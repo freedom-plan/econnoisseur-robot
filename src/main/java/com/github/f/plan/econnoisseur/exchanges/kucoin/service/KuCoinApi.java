@@ -66,16 +66,22 @@ public class KuCoinApi implements IApi {
 
     @Override public Balances balances() {
         Balances balances = new Balances(SERVER);
-        String response = doRequest(KuCoinApiPath.BALANCE_PATH, null);
-        handler(response, balances, (jsonObject, dto) -> {
-            Optional.ofNullable(jsonObject.getJSONArray("datas"))
-                .ifPresent(p->p.toJavaList(JSONObject.class)
-                    .forEach(q -> {
-                        if (!q.getString("balance").equals("0.0")) {
-                            dto.setBalance(Currency.get(q.getString("coinType")), new Balance().setAvailable(q.getBigDecimal("balance")).setFrozen(q.getBigDecimal("freezeBalance")));
-                        }
-                }));
-        });
+        JSONObject param = new JSONObject()
+            .fluentPut("limit", 20);
+        for (int i = 0; i < 10; i++) {
+            param.fluentPut("page", i + 1);
+            String response = doRequest(KuCoinApiPath.BALANCE_PATH, param);
+            handler(response, balances, (jsonObject, dto) -> {
+                Optional.ofNullable(jsonObject.getJSONArray("datas"))
+                    .ifPresent(p->p.toJavaList(JSONObject.class)
+                        .forEach(q -> {
+                            if (!q.getString("balance").equals("0.0")) {
+                                dto.setBalance(Currency.get(q.getString("coinType")), new Balance().setAvailable(q.getBigDecimal("balance")).setFrozen(q.getBigDecimal("freezeBalance")));
+                            }
+                        }));
+            });
+        }
+
         return balances;
     }
 
@@ -92,7 +98,6 @@ public class KuCoinApi implements IApi {
         handler(response, order, (jsonObject, dto) -> {
             dto.setId(jsonObject.getString("orderOid"));
         });
-        System.out.println(response);
         return order;
     }
 
