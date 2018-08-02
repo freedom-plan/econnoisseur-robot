@@ -23,7 +23,8 @@ public enum Currency {
     BCH,
     USDT,
     LFT,
-    TCT
+    TCT,
+    MGD
     ;
 
     @Override
