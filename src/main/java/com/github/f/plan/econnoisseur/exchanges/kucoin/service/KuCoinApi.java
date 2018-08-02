@@ -51,7 +51,7 @@ public class KuCoinApi implements IApi {
         JSONObject param = new JSONObject()
             .fluentPut("symbol", Market.valueOf(pair));
 
-        String response = doRequest(KuCoinApiPath.TICKER_PATH, param);
+        String response = doRequest(KuCoinApiPath.TICKER_PATH, null, param);
         handler(response, ticker, (jsonObject, dto) -> {
             dto.setAsk(jsonObject.getBigDecimal("sell"))
                 .setBid(jsonObject.getBigDecimal("buy"))
@@ -65,22 +65,17 @@ public class KuCoinApi implements IApi {
     }
 
     @Override public Balances balances() {
-        Balances balances = new Balances(SERVER);
-        JSONObject param = new JSONObject()
-            .fluentPut("limit", 20);
-        for (int i = 0; i < 10; i++) {
-            param.fluentPut("page", i + 1);
-            String response = doRequest(KuCoinApiPath.BALANCE_PATH, param);
-            handler(response, balances, (jsonObject, dto) -> {
-                Optional.ofNullable(jsonObject.getJSONArray("datas"))
-                    .ifPresent(p->p.toJavaList(JSONObject.class)
-                        .forEach(q -> {
-                            if (!q.getString("balance").equals("0.0")) {
-                                dto.setBalance(Currency.get(q.getString("coinType")), new Balance().setAvailable(q.getBigDecimal("balance")).setFrozen(q.getBigDecimal("freezeBalance")));
-                            }
-                        }));
-            });
-        }
+        Balances balances = new Balances(OK) {
+            @Override public Balance getBalance(Currency currency) {
+                String response = doRequest(KuCoinApiPath.BALANCE_SINGLE_PATH, currency, null);
+                Balance balance = new Balance();
+                JSONObject data = JSONObject.parseObject(response).getJSONObject("data");
+                balance.setAvailable(data.getBigDecimal("balance"))
+                    .setFrozen(data.getBigDecimal("freezeBalance"));
+
+                return balance;
+            }
+        };
 
         return balances;
     }
@@ -94,7 +89,7 @@ public class KuCoinApi implements IApi {
             .fluentPut("symbol", Market.valueOf(pair))
             ;
 
-        String response = doRequest(KuCoinApiPath.TRADE_PATH, param);
+        String response = doRequest(KuCoinApiPath.TRADE_PATH, null, param);
         handler(response, order, (jsonObject, dto) -> {
             dto.setId(jsonObject.getString("orderOid"));
         });
@@ -158,19 +153,25 @@ public class KuCoinApi implements IApi {
      * @param params  请求参数
      * @return
      */
-    private String doRequest(KuCoinApiPath apiPath, JSONObject params) {
+    private String doRequest(KuCoinApiPath apiPath, Currency currency, JSONObject params) {
         if (null == params) {
             params = new JSONObject();
         }
         String url = this.urlPrefix + apiPath.getPath();
+        String endpoint = apiPath.getEndpoint();
         if (apiPath.isAuth()) {
             String nonce = String.valueOf(System.currentTimeMillis());
 
             Header kucoinapikey = new BasicHeader("KC-API-KEY", this.apiKey);
             Header kucoinsign = new BasicHeader("KC-API-NONCE", nonce);
             Header kucointimestamp = null;
+
+            if (null != currency) {
+                url = this.urlPrefix + "/v1/account/" + currency.toString() + "/balance";
+                endpoint = "/v1/account/" + currency.toString() + "/balance";
+            }
             try {
-                kucointimestamp = new BasicHeader("KC-API-SIGNATURE", new SignUtil(this.secretKey).getSign(params, apiPath.getEndpoint(), nonce));
+                kucointimestamp = new BasicHeader("KC-API-SIGNATURE", new SignUtil(this.secretKey).getSign(params, endpoint, nonce));
                 return HttpRequest.request(url, apiPath.getMethod(), params, kucoinapikey, kucoinsign, kucointimestamp);
             } catch (NoSuchAlgorithmException | InvalidKeyException e) {
                 LOGGER.info("调用出错");
