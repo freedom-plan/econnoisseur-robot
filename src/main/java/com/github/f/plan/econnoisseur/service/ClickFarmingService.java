@@ -44,13 +44,13 @@ public class ClickFarmingService {
     // 开启挖矿
     private static final Boolean MINING = Boolean.FALSE;
     // 平台币
-    private static final Boolean PLATFORM_CURRENCY_ENABLED = Boolean.FALSE;
+    private static final Boolean PLATFORM_CURRENCY_ENABLED = Boolean.TRUE;
     private static final Currency PLATFORM_CURRENCY = Currency.CET;
     private static final BigDecimal MIN_PLATFORM_CURRENCY_AMOUNT = new BigDecimal("200");
 
     // 交易币
-    private static final int AMOUNT_SCALE = 7;
-    private static final BigDecimal MAX_HOLD_AMOUNT = new BigDecimal("10000");
+    private static final int AMOUNT_SCALE = 8;
+    private static final BigDecimal MAX_HOLD_AMOUNT = new BigDecimal("100");
     private static final BigDecimal MIN_AMOUNT = new BigDecimal("50");
 
     private static final BigDecimal SAFE_WIDE = new BigDecimal("0.00000002");
