@@ -42,14 +42,15 @@ public class ClickFarmingService {
 
     private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.LFT_BCH;
 
-    // 平台币
-    private static final Currency PLATFORM_CURRENCY = Currency.CET;
     // 开启挖矿
     private static final Boolean MINING = Boolean.FALSE;
-
+    // 平台币
+    private static final Boolean PLATFORM_CURRENCY_ENABLED = Boolean.FALSE;
+    private static final Currency PLATFORM_CURRENCY = Currency.CET;
     private static final BigDecimal MIN_PLATFORM_CURRENCY_AMOUNT = new BigDecimal("200");
+
     // 交易币
-    private static final BigDecimal MAX_HOLD_AMOUNT = new BigDecimal("6000");
+    private static final BigDecimal MAX_HOLD_AMOUNT = new BigDecimal("1000");
     private static final BigDecimal MIN_AMOUNT = new BigDecimal("50");
 
     private static final BigDecimal SAFE_WIDE = new BigDecimal("0.00000002");
@@ -190,7 +191,7 @@ public class ClickFarmingService {
             Balances balances = api.balances();
             if (check(balances)) {
                 boolean flag = true;
-                if (!MINING) {
+                if (!MINING && PLATFORM_CURRENCY_ENABLED) {
                     Balance platform = balances.getBalance(PLATFORM_CURRENCY);
                     if (null == platform || platform.getAvailable().compareTo(MIN_PLATFORM_CURRENCY_AMOUNT) < 0) {
                         flag = false;
@@ -336,12 +337,11 @@ public class ClickFarmingService {
             BigDecimal buy = ticker.getBid();
 
             if (sell.compareTo(buy.add(SAFE_WIDE)) >= 0) {
-//              BigDecimal step = sell.subtract(buy).divide(new BigDecimal(3), RoundingMode.HALF_UP);
-//              BigDecimal amount = OrderOperation.SELL == operation ? sell.subtract(step) : buy.add(step);
-//              price = amount.setScale(8, BigDecimal.ROUND_HALF_UP);
-
                 result = true;
                 price = sell.add(buy).divide(new BigDecimal(2), RoundingMode.HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
+
+                // RoundingMode roundingMode = OrderOperation.SELL == operation ? RoundingMode.HALF_DOWN : RoundingMode.HALF_UP;
+                // price = sell.add(buy).divide(new BigDecimal(2), roundingMode).setScale(8, BigDecimal.ROUND_HALF_UP);
             }
         }
         if (result) {
