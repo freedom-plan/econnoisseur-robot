@@ -16,6 +16,7 @@ public enum KuCoinApiPath {
      * 查询账户余额
      */
     BALANCE_PATH("/v1/account/balances", "/v1/account/balances", true, "GET"),
+    BALANCE_SINGLE_PATH("/v1/account/balances", "/v1/account/balances", true, "GET"),
     /**
      * 查询订单详情
      */
