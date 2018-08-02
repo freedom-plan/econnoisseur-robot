@@ -15,7 +15,7 @@ public class Balance {
     private BigDecimal frozen;
 
     public BigDecimal getTotal() {
-        if (null == total) {
+        if (null == total && !(null == this.available && null == this.frozen)) {
             total = this.getAvailable().add(this.getFrozen());
         }
         return total;

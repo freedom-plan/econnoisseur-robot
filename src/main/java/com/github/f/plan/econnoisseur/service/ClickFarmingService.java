@@ -6,10 +6,10 @@ import com.github.f.plan.econnoisseur.exchanges.coinex.service.CoinexApi;
 import com.github.f.plan.econnoisseur.exchanges.common.dto.*;
 import com.github.f.plan.econnoisseur.exchanges.common.iface.IApi;
 import com.github.f.plan.econnoisseur.exchanges.common.model.*;
+import com.github.f.plan.econnoisseur.exchanges.kucoin.service.KuCoinApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -33,14 +33,13 @@ import java.util.concurrent.Future;
 public class ClickFarmingService {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClickFarmingService.class);
     @Autowired
-    @Qualifier("coinexApi")
     private IApi api;
     @Autowired(required = false)
     private DingTalkService dingTalkService;
     @Autowired
     private ExecutorService taskExecutor;
 
-    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.LFT_BCH;
+    private static final CurrencyPair CURRENT_CURRENCY_PAIR = CurrencyPair.DACC_ETH;
 
     // 开启挖矿
     private static final Boolean MINING = Boolean.FALSE;
@@ -50,7 +49,8 @@ public class ClickFarmingService {
     private static final BigDecimal MIN_PLATFORM_CURRENCY_AMOUNT = new BigDecimal("200");
 
     // 交易币
-    private static final BigDecimal MAX_HOLD_AMOUNT = new BigDecimal("1000");
+    private static final int AMOUNT_SCALE = 7;
+    private static final BigDecimal MAX_HOLD_AMOUNT = new BigDecimal("10000");
     private static final BigDecimal MIN_AMOUNT = new BigDecimal("50");
 
     private static final BigDecimal SAFE_WIDE = new BigDecimal("0.00000002");
@@ -125,7 +125,7 @@ public class ClickFarmingService {
                 return;
             }
 
-            if (api instanceof CoinexApi) {
+            if (api instanceof CoinexApi || api instanceof KuCoinApi) {
                 LOGGER.info("默认下单完成\n\n");
                 return;
             }
@@ -338,10 +338,10 @@ public class ClickFarmingService {
 
             if (sell.compareTo(buy.add(SAFE_WIDE)) >= 0) {
                 result = true;
-                price = sell.add(buy).divide(new BigDecimal(2), RoundingMode.HALF_UP).setScale(8, BigDecimal.ROUND_HALF_UP);
+                price = sell.add(buy).divide(new BigDecimal(2), RoundingMode.HALF_UP).setScale(AMOUNT_SCALE, BigDecimal.ROUND_HALF_UP);
 
-                // RoundingMode roundingMode = OrderOperation.SELL == operation ? RoundingMode.HALF_DOWN : RoundingMode.HALF_UP;
-                // price = sell.add(buy).divide(new BigDecimal(2), roundingMode).setScale(8, BigDecimal.ROUND_HALF_UP);
+//                RoundingMode roundingMode = OrderOperation.SELL == operation ? RoundingMode.HALF_DOWN : RoundingMode.HALF_UP;
+//                price = sell.add(buy).divide(new BigDecimal(2), roundingMode).setScale(AMOUNT_SCALE, BigDecimal.ROUND_HALF_UP);
             }
         }
         if (result) {

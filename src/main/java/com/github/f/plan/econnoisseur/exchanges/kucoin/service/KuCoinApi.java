@@ -4,13 +4,13 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.github.f.plan.econnoisseur.dto.HttpConsumer;
 import com.github.f.plan.econnoisseur.exchanges.common.dto.*;
-import com.github.f.plan.econnoisseur.exchanges.common.model.Currency;
-import com.github.f.plan.econnoisseur.exchanges.kucoin.model.Market;
-import com.github.f.plan.econnoisseur.exchanges.kucoin.util.SignUtil;
 import com.github.f.plan.econnoisseur.exchanges.common.iface.IApi;
+import com.github.f.plan.econnoisseur.exchanges.common.model.Currency;
 import com.github.f.plan.econnoisseur.exchanges.common.model.CurrencyPair;
 import com.github.f.plan.econnoisseur.exchanges.common.model.OrderOperation;
 import com.github.f.plan.econnoisseur.exchanges.kucoin.model.KuCoinApiPath;
+import com.github.f.plan.econnoisseur.exchanges.kucoin.model.Market;
+import com.github.f.plan.econnoisseur.exchanges.kucoin.util.SignUtil;
 import com.github.f.plan.econnoisseur.util.HttpRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
@@ -21,7 +21,6 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Optional;
 
 import static com.github.f.plan.econnoisseur.exchanges.common.model.Code.OK;
 import static com.github.f.plan.econnoisseur.exchanges.common.model.Code.SERVER;
@@ -45,49 +44,54 @@ public class KuCoinApi implements IApi {
         this.secretKey = secretKey;
     }
 
-    @Override public Ticker ticker(CurrencyPair pair) {
+    @Override
+    public Ticker ticker(CurrencyPair pair) {
         Ticker ticker = new Ticker(SERVER);
 
         JSONObject param = new JSONObject()
-            .fluentPut("symbol", Market.valueOf(pair));
+                .fluentPut("symbol", Market.valueOf(pair));
 
         String response = doRequest(KuCoinApiPath.TICKER_PATH, null, param);
         handler(response, ticker, (jsonObject, dto) -> {
             dto.setAsk(jsonObject.getBigDecimal("sell"))
-                .setBid(jsonObject.getBigDecimal("buy"))
-                .setHigh(jsonObject.getBigDecimal("high"))
-                .setLast(jsonObject.getBigDecimal("lastDealPrice"))
-                .setLow(jsonObject.getBigDecimal("low"))
-                .setVol(jsonObject.getBigDecimal("volValue"));
+                    .setBid(jsonObject.getBigDecimal("buy"))
+                    .setHigh(jsonObject.getBigDecimal("high"))
+                    .setLast(jsonObject.getBigDecimal("lastDealPrice"))
+                    .setLow(jsonObject.getBigDecimal("low"))
+                    .setVol(jsonObject.getBigDecimal("volValue"));
         });
 
         return ticker;
     }
 
-    @Override public Balances balances() {
+    @Override
+    public Balances balances() {
         Balances balances = new Balances(OK) {
-            @Override public Balance getBalance(Currency currency) {
-                String response = doRequest(KuCoinApiPath.BALANCE_SINGLE_PATH, currency, null);
-                Balance balance = new Balance();
-                JSONObject data = JSONObject.parseObject(response).getJSONObject("data");
-                balance.setAvailable(data.getBigDecimal("balance"))
-                    .setFrozen(data.getBigDecimal("freezeBalance"));
-
+            @Override
+            public Balance getBalance(Currency currency) {
+                Balance balance = super.getBalance(currency);
+                if (null == balance.getTotal()) {
+                    String response = doRequest(KuCoinApiPath.BALANCE_SINGLE_PATH, currency, null);
+                    balance = new Balance();
+                    JSONObject data = JSONObject.parseObject(response).getJSONObject("data");
+                    balance.setAvailable(data.getBigDecimal("balance"))
+                            .setFrozen(data.getBigDecimal("freezeBalance"));
+                    setBalance(currency, balance);
+                }
                 return balance;
             }
         };
-
         return balances;
     }
 
-    @Override public Order limit(CurrencyPair pair, OrderOperation operation, BigDecimal price, BigDecimal amount) {
+    @Override
+    public Order limit(CurrencyPair pair, OrderOperation operation, BigDecimal price, BigDecimal amount) {
         Order order = new Order();
         JSONObject param = new JSONObject()
-            .fluentPut("type", operation.name())
-            .fluentPut("price", price)
-            .fluentPut("amount", amount)
-            .fluentPut("symbol", Market.valueOf(pair))
-            ;
+                .fluentPut("type", operation.name())
+                .fluentPut("price", price)
+                .fluentPut("amount", amount)
+                .fluentPut("symbol", Market.valueOf(pair));
 
         String response = doRequest(KuCoinApiPath.TRADE_PATH, null, param);
         handler(response, order, (jsonObject, dto) -> {
@@ -96,24 +100,29 @@ public class KuCoinApi implements IApi {
         return order;
     }
 
-    @Override public Order market(CurrencyPair pair, OrderOperation operation, BigDecimal amount) {
+    @Override
+    public Order market(CurrencyPair pair, OrderOperation operation, BigDecimal amount) {
         return null;
     }
 
-    @Override public Orders pandingOrders(CurrencyPair pair) {
+    @Override
+    public Orders pandingOrders(CurrencyPair pair) {
         return null;
     }
 
-    @Override public Orders finishedOrders(CurrencyPair pair) {
+    @Override
+    public Orders finishedOrders(CurrencyPair pair) {
         return null;
     }
 
-    @Override public Order getOrder(CurrencyPair pair, String orderId) {
+    @Override
+    public Order getOrder(CurrencyPair pair, String orderId) {
         //由于该接口需要订单类型（买或卖），暂时使用不了
         return null;
     }
 
-    @Override public Order cancelOrder(CurrencyPair pair, String orderId) {
+    @Override
+    public Order cancelOrder(CurrencyPair pair, String orderId) {
         //由于该接口需要订单类型（买或卖），暂时使用不了
         return null;
     }

@@ -29,6 +29,8 @@ public enum CurrencyPair {
     TCT_BTC(TCT, BTC),
     MGD_BCH(MGD, BCH),
     MGD_BTC(MGD, BTC),
+    DACC_ETH(DACC, ETH),
+    DACC_BTC(DACC, BTC),
     ;
 
     private Currency base;
