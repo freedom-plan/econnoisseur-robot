@@ -25,7 +25,8 @@ public enum Currency {
     LFT,
     TCT,
     MGD,
-    DACC
+    DACC,
+    THPC
     ;
 
     @Override
